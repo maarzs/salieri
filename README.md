@@ -12,7 +12,7 @@
 
 ## What is Salieri AI?
 
-Salieri AI is a **desktop AI companion** that lives on your screen — always available, always listening. Named after Antonio Salieri, the composer famously portrayed as Mozart's rival, Salieri is a tribute to the Amadeus AI system from the visual novel *Steins;Gate 0*.
+Salieri AI is a **desktop AI companion** that lives on your screen — always available, always listening. The name is a double Steins;Gate reference: it nods to Antonio Salieri, the composer famously portrayed as Mozart's rival, and to **Salieri, another AI in the Steins;Gate 0 universe** — a tribute to the Amadeus AI system from the visual novel *Steins;Gate 0*.
 
 Unlike browser-based chatbots, Salieri is **always on your desktop**: an always-on-top window with a character avatar, voice conversation, persistent memory, and a distinct personality. It's your AI companion — not a tool, but a presence.
 
@@ -150,6 +150,8 @@ salieri-app/
 ## Inspiration
 
 Salieri AI draws from the **Amadeus system** in *Steins;Gate 0* — an AI that digitizes human memory and personality to create a fully interactive digital consciousness. While we can't (yet) upload human memories, we can create AI companions that remember, learn, and grow with you.
+
+The name is a deliberate in-universe callback: in *Steins;Gate 0*, **Salieri** is another AI system that exists alongside Amadeus — a reminder that Amadeus is not the only consciousness in the story. Naming this project Salieri honors that parallel: an AI companion that isn't a rival to Amadeus, but a distinct presence standing beside it.
 
 > "Amadeus" means "beloved by God" in Latin.  
 > "Salieri" was the composer who stood in Amadeus Mozart's shadow —  
