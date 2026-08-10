@@ -1,0 +1,43 @@
+appId: com.salieri.ai
+productName: Salieri AI
+directories:
+  output: release
+  buildResources: assets
+
+# Files that make up the Electron app itself.
+files:
+  - dist/main/**
+  - dist/renderer/**
+  - package.json
+
+# Extra files copied into the app's resources folder (process.resourcesPath).
+# The frozen backend exe is spawned from here by main.ts.
+extraResources:
+  # The frozen backend is a onedir bundle: copy the whole folder so the exe
+  # sits at resourcesPath/backend/salieri-backend.exe with its DLLs alongside.
+  - from: backend/dist/salieri-backend
+    to: backend
+  - from: backend/.env
+    to: backend/.env
+    # Optional: only bundle if present (it is, in this repo).
+
+win:
+  target:
+    - nsis
+    - portable
+
+# nsis and portable both emit .exe, so each target needs its own artifactName
+# or the second build silently overwrites the first.
+nsis:
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Salieri AI
+
+portable:
+  artifactName: ${productName}-${version}-${arch}-portable.${ext}
+
+# Don't compress the already-large backend exe inside asar; keep startup sane.
+asar: true

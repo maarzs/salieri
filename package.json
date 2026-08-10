@@ -1,0 +1,35 @@
+{
+  "name": "salieri-ai",
+  "version": "0.1.0",
+  "description": "Salieri AI - Desktop AI Companion inspired by Steins;Gate's Amadeus system",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && tsc -p tsconfig.main.json && electron .",
+    "build:renderer": "tsc -p tsconfig.renderer.json && vite build",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build": "npm run build:renderer && npm run build:main",
+    "start": "electron .",
+    "backend:install": "cd backend && pip install -r requirements.txt",
+    "backend:start": "cd backend && python server.py",
+    "backend:freeze": "cd backend && pyinstaller --clean --noconfirm salieri-backend.spec",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^8.2.2",
+    "electron": "^31.2.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4",
+    "wait-on": "^7.2.0"
+  }
+}

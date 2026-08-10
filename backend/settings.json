@@ -1,0 +1,7 @@
+{
+  "model": "deepseek-3.2",
+  "provider": "openai",
+  "base_url": "https://api.cosmoshub.tech/v1",
+  "ollama_host": "http://localhost:11434",
+  "tts_enabled": false
+}
