@@ -19,6 +19,15 @@ from typing import AsyncIterator
 logger = logging.getLogger("salieri.llm")
 
 
+class LLMUnavailableError(RuntimeError):
+    """
+    Raised when the LLM engine has no usable client.
+
+    Carries a message written for the end user (missing API key, missing
+    package, unknown provider) so the server can forward it straight to the UI.
+    """
+
+
 class LLMEngine:
     """LLM interface with Ollama local-first, any OpenAI-compatible API as option."""
 
@@ -42,52 +51,105 @@ class LLMEngine:
         self.model = s.get("model") or os.getenv("SALIERI_LLM_MODEL", default_model)
 
         self._client = None
+        # When the client cannot be built, this holds a human-readable reason
+        # that is surfaced to the UI instead of crashing the connection.
+        self.init_error: str | None = None
         self._init_client()
 
+    @property
+    def is_ready(self) -> bool:
+        """True when the engine has a usable client and can serve requests."""
+        return self._client is not None and self.init_error is None
+
     def _init_client(self):
-        """Initialize the appropriate client based on provider."""
+        """
+        Initialize the appropriate client based on provider.
+
+        Never raises: a failure here is recorded in ``self.init_error`` so the
+        server can keep running and report a helpful message to the user
+        (matching how the memory/STT/TTS subsystems degrade gracefully).
+        """
+        self.init_error = None
+
         if self.provider == "ollama":
             try:
                 import ollama
                 self._client = ollama.AsyncClient(host=self.ollama_host)
                 logger.info(f"LLM: Ollama client initialized (model: {self.model})")
             except ImportError:
-                logger.warning("ollama package not installed, falling back to HTTP")
                 self._client = None
+                self.init_error = (
+                    "The 'ollama' package is not installed. "
+                    "Run: pip install ollama  (or switch provider to 'openai' in Settings)."
+                )
+                logger.warning("LLM unavailable: %s", self.init_error)
+            except Exception as e:
+                self._client = None
+                self.init_error = f"Could not initialize Ollama client: {e}"
+                logger.warning("LLM unavailable: %s", self.init_error)
 
         elif self.provider == "openai":
             try:
                 from openai import AsyncOpenAI
+            except ImportError:
+                self._client = None
+                self.init_error = (
+                    "The 'openai' package is not installed. "
+                    "Run: pip install -r backend/requirements.txt"
+                )
+                logger.warning("LLM unavailable: %s", self.init_error)
+                return
 
-                api_key = self.api_key
-                base_url = self.base_url
+            if not self.api_key:
+                self._client = None
+                self.init_error = (
+                    "No API key configured. Open Settings and add your API key, "
+                    "or set OPENAI_API_KEY in backend/.env"
+                )
+                logger.warning("LLM unavailable: %s", self.init_error)
+                return
 
-                if not api_key:
-                    raise ValueError(
-                        "OPENAI_API_KEY not set. "
-                        "Set it via environment variable or .env file."
-                    )
-
-                kwargs = {"api_key": api_key}
-                if base_url:
-                    kwargs["base_url"] = base_url
+            try:
+                kwargs = {"api_key": self.api_key}
+                if self.base_url:
+                    kwargs["base_url"] = self.base_url
                     logger.info(
-                        f"LLM: OpenAI-compatible client -> {base_url} "
+                        f"LLM: OpenAI-compatible client -> {self.base_url} "
                         f"(model: {self.model})"
                     )
                 else:
                     logger.info(
                         f"LLM: OpenAI client initialized (model: {self.model})"
                     )
-
                 self._client = AsyncOpenAI(**kwargs)
+            except Exception as e:
+                self._client = None
+                self.init_error = f"Could not initialize the API client: {e}"
+                logger.warning("LLM unavailable: %s", self.init_error)
 
-            except ImportError:
-                logger.error("openai package not installed. Run: pip install openai")
-                raise
+        else:
+            self._client = None
+            self.init_error = (
+                f"Unknown LLM provider '{self.provider}'. "
+                "Expected 'ollama' or 'openai'."
+            )
+            logger.warning("LLM unavailable: %s", self.init_error)
+
+    def _guard_ready(self):
+        """
+        Raise a clear, user-facing error when the engine isn't usable.
+
+        Without this, an un-initialized 'openai' provider would silently fall
+        through to the Ollama HTTP fallback and surface a misleading
+        "connection refused to localhost:11434" instead of the real cause.
+        """
+        if self.init_error:
+            raise LLMUnavailableError(self.init_error)
 
     async def chat(self, messages: list[dict]) -> str:
         """Generate a complete response from a message array (non-streaming)."""
+        self._guard_ready()
+
         if self.provider == "ollama" and self._client:
             response = await self._client.chat(
                 model=self.model,
@@ -109,6 +171,8 @@ class LLMEngine:
 
     async def chat_stream(self, messages: list[dict]) -> AsyncIterator[str]:
         """Generate a response with streaming chunks from a message array."""
+        self._guard_ready()
+
         if self.provider == "ollama" and self._client:
             stream = await self._client.chat(
                 model=self.model,
@@ -184,6 +248,9 @@ class LLMEngine:
 
     async def check_health(self) -> bool:
         """Check if the LLM is available."""
+        if self.init_error:
+            return False
+
         if self.provider == "openai" and self._client:
             return True
 

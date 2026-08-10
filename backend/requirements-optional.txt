@@ -1,0 +1,24 @@
+# Optional heavy dependencies for full voice + semantic-memory support.
+#
+# The backend runs fine without any of these; each missing package simply
+# disables its feature and logs a warning at startup. Install when you want
+# local speech-to-text and embedding-based memory search.
+#
+#   pip install -r requirements.txt -r requirements-optional.txt
+
+-r requirements.txt
+
+# Local speech-to-text (offline, no API cost)
+faster-whisper>=1.0.0,<2.0.0
+
+# Microphone capture. On Windows, prefer a prebuilt wheel:
+#   pip install pipwin && pipwin install pyaudio
+pyaudio>=0.2.14,<1.0.0
+
+# Audio buffer handling
+numpy>=1.26.0,<3.0.0
+soundfile>=0.12.0,<1.0.0
+
+# Semantic memory search via sentence embeddings.
+# Pulls in torch (~2GB). Without it, memory search falls back to SQL LIKE.
+sentence-transformers>=3.0.0,<6.0.0

@@ -1,11 +1,22 @@
-fastapi>=0.111.0
-uvicorn[standard]>=0.30.0
-websockets>=12.0
-ollama>=0.2.0
-faster-whisper>=1.0.0
-edge-tts>=6.1.0
-numpy>=1.26.0
-soundfile>=0.12.0
-pyaudio>=0.2.14
-sqlite-vec>=0.1.0
-sentence-transformers>=3.0.0
+# --- Core runtime (required) ---
+# The backend will not start without these.
+websockets>=12.0,<17.0
+openai>=1.40.0,<3.0.0          # OpenAI-compatible cloud providers (OpenAI, OpenRouter, Groq, DeepSeek, ...)
+ollama>=0.2.0,<1.0.0           # Local model provider
+python-dotenv>=1.0.0,<2.0.0    # Loads backend/.env
+aiohttp>=3.9.0,<4.0.0          # Used to probe provider endpoints / list models
+
+# --- Voice (optional) ---
+# Text-to-speech. Without this, TTS is disabled but chat still works.
+edge-tts>=6.1.0,<8.0.0
+
+# --- Optional extras ---
+# Everything below degrades gracefully: the backend logs a warning and
+# disables just the corresponding feature if the package is absent.
+#
+#   faster-whisper          -> local speech-to-text
+#   pyaudio                 -> microphone capture
+#   sentence-transformers   -> semantic memory search (falls back to keyword search)
+#   numpy / soundfile       -> audio buffer handling
+#
+# Install them with:  pip install -r requirements-optional.txt
