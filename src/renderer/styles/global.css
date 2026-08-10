@@ -281,8 +281,32 @@ html, body, #root {
   max-height: 100%;
   object-fit: contain;
   transition: opacity 0.3s ease;
+  filter: drop-shadow(0 6px 24px rgba(107, 90, 255, 0.35));
 }
 
+/* Idle glow: slow breathing pulse behind the character */
+.avatar-glow-idle {
+  animation: avatar-breathe 3.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Talking glow: faster, brighter pulse while TTS is playing */
+.avatar-glow-talking {
+  animation: avatar-talk-pulse 0.9s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes avatar-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.04); }
+}
+
+@keyframes avatar-talk-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.07); }
+}
+
+/* Legacy emoji placeholder — kept only for builds without the SVG avatar */
 .avatar-placeholder {
   width: 120px;
   height: 120px;
