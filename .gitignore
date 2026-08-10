@@ -24,3 +24,6 @@ Thumbs.db
 # Build
 out/
 release/
+# PyInstaller build artifacts
+backend/build/
+backend/*.spec
