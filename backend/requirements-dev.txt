@@ -1,0 +1,7 @@
+# Dev/test-only dependencies — not needed to run Salieri itself.
+#
+#   pip install -r requirements-dev.txt
+#   pytest
+#
+pytest>=8.0
+pytest-asyncio>=0.23
