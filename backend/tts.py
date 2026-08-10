@@ -48,6 +48,17 @@ class TTSEngine:
             logger.warning("TTS requested but edge-tts is not installed")
         return self.enabled
 
+    def set_voice(self, voice: str = "", rate: str = "") -> None:
+        """Apply voice/rate overrides from the Settings panel at runtime.
+
+        Empty values leave the current setting untouched, so callers can pass
+        the raw effective-settings dict unconditionally.
+        """
+        if voice and voice.strip():
+            self.voice = voice.strip()
+        if rate and rate.strip():
+            self.rate = rate.strip()
+
     async def generate(self, text: str) -> str | None:
         """Generate speech audio and return as base64-encoded audio."""
         if not self.enabled or not text.strip():

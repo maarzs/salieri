@@ -197,6 +197,26 @@ html, body, #root {
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
+.settings-field__textarea {
+  resize: vertical;
+  min-height: 56px;
+  line-height: 1.4;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.settings-section__title {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
 .settings-field__refresh {
   background: transparent;
   border: none;

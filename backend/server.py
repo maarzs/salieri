@@ -97,6 +97,20 @@ class SalieriBackend:
         self.tts = TTSEngine()
         self.stt = STTEngine()
         self.active_voice_call = False
+        # Apply the persisted voice/personality settings from the last session
+        # so the first chat already reflects what the user configured.
+        self._apply_user_settings()
+
+    def _apply_user_settings(self):
+        """Push voice + personality settings into the engines.
+
+        Idempotent — called at startup and again after every successful
+        settings update. Failures here must never break chat, so this only
+        touches presentation (voice, prompt style), never the LLM client.
+        """
+        eff = self.settings.effective()
+        self.personality.apply_settings(eff)
+        self.tts.set_voice(eff.get("tts_voice", ""), eff.get("tts_rate", ""))
 
     async def handle_message(self, websocket, data: dict):
         """Route incoming messages from the frontend."""
@@ -272,6 +286,8 @@ class SalieriBackend:
             # Respect the user's toggle, but never enable TTS when the
             # edge-tts package is missing.
             self.tts.set_enabled(self.settings.effective()["tts_enabled"])
+            # Re-apply voice + personality so changes take effect immediately.
+            self._apply_user_settings()
             await self.send_json(websocket, {
                 "type": "settings",
                 "settings": public,

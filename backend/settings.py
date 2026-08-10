@@ -26,6 +26,11 @@ _FIELDS = {
     "api_key": "OPENAI_API_KEY",
     "ollama_host": "OLLAMA_HOST",
     "tts_enabled": "SALIERI_TTS_ENABLED",
+    "tts_voice": "SALIERI_TTS_VOICE",
+    "tts_rate": "SALIERI_TTS_RATE",
+    "personality_name": "SALIERI_PERSONALITY_NAME",
+    "personality_style": "SALIERI_PERSONALITY_STYLE",
+    "response_length": "SALIERI_RESPONSE_LENGTH",
 }
 
 _DEFAULTS = {
@@ -35,6 +40,16 @@ _DEFAULTS = {
     "api_key": "",
     "ollama_host": "http://localhost:11434",
     "tts_enabled": True,
+    "tts_voice": "en-US-AriaNeural",
+    "tts_rate": "+10%",
+    "personality_name": "",
+    "personality_style": "",
+    "response_length": "normal",
+}
+
+# Fields restricted to a fixed set of values: {key: (allowed, ...)}
+_ENUM_FIELDS = {
+    "response_length": ("concise", "normal", "detailed"),
 }
 
 # Model name used when the user hasn't picked one, per provider.
@@ -138,6 +153,13 @@ class SettingsStore:
 
             if key == "tts_enabled":
                 self._data[key] = _as_bool(value, True)
+                continue
+
+            if key in _ENUM_FIELDS:
+                normalized = str(value).strip().lower()
+                if normalized not in _ENUM_FIELDS[key]:
+                    normalized = _DEFAULTS[key]
+                self._data[key] = normalized
                 continue
 
             self._data[key] = str(value).strip()

@@ -1,6 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { Settings, SettingsPatch } from '../types';
 
+/** Popular Edge TTS voices offered as quick picks; the input accepts any
+ *  valid Edge TTS voice name, so this list is a convenience, not a limit. */
+const VOICE_OPTIONS: { id: string; label: string }[] = [
+  { id: 'en-US-AriaNeural', label: 'Aria — US female (default)' },
+  { id: 'en-US-AvaNeural', label: 'Ava — US female' },
+  { id: 'en-US-JennyNeural', label: 'Jenny — US female' },
+  { id: 'en-US-MichelleNeural', label: 'Michelle — US female' },
+  { id: 'en-US-GuyNeural', label: 'Guy — US male' },
+  { id: 'en-US-ChristopherNeural', label: 'Christopher — US male' },
+  { id: 'en-US-EricNeural', label: 'Eric — US male' },
+  { id: 'en-GB-SoniaNeural', label: 'Sonia — British female' },
+  { id: 'en-GB-RyanNeural', label: 'Ryan — British male' },
+  { id: 'en-AU-NatashaNeural', label: 'Natasha — Australian female' },
+  { id: 'en-AU-WilliamNeural', label: 'William — Australian male' },
+  { id: 'en-CA-ClaraNeural', label: 'Clara — Canadian female' },
+  { id: 'en-IN-NeerjaNeural', label: 'Neerja — Indian female' },
+];
+
 interface SettingsPanelProps {
   settings: Settings | null;
   models: string[];
@@ -35,6 +53,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [ollamaHost, setOllamaHost] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [ttsVoice, setTtsVoice] = useState('');
+  const [ttsRate, setTtsRate] = useState('');
+  const [personalityName, setPersonalityName] = useState('');
+  const [personalityStyle, setPersonalityStyle] = useState('');
+  const [responseLength, setResponseLength] = useState('normal');
 
   // Hydrate the form whenever fresh settings arrive from the backend.
   useEffect(() => {
@@ -44,6 +67,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     setBaseUrl(settings.base_url ?? '');
     setOllamaHost(settings.ollama_host ?? '');
     setTtsEnabled(settings.tts_enabled);
+    setTtsVoice(settings.tts_voice ?? '');
+    setTtsRate(settings.tts_rate ?? '');
+    setPersonalityName(settings.personality_name ?? '');
+    setPersonalityStyle(settings.personality_style ?? '');
+    setResponseLength(settings.response_length || 'normal');
     setApiKey('');
   }, [settings]);
 
@@ -57,6 +85,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       base_url: baseUrl.trim(),
       ollama_host: ollamaHost.trim(),
       tts_enabled: ttsEnabled,
+      tts_voice: ttsVoice.trim(),
+      tts_rate: ttsRate.trim(),
+      personality_name: personalityName.trim(),
+      personality_style: personalityStyle.trim(),
+      response_length: responseLength,
     };
     // Only send the key when the user actually entered one.
     if (apiKey.trim()) patch.api_key = apiKey.trim();
@@ -188,6 +221,91 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           />
           <span className="settings-field__label">Enable voice (TTS)</span>
         </label>
+
+        {ttsEnabled && (
+          <div className="settings-section">
+            <span className="settings-section__title">VOICE</span>
+            <label className="settings-field">
+              <span className="settings-field__label">TTS Voice</span>
+              <input
+                className="settings-field__input"
+                type="text"
+                value={ttsVoice}
+                list="salieri-voice-list"
+                placeholder="en-US-AriaNeural"
+                onChange={(e) => setTtsVoice(e.target.value)}
+                spellCheck={false}
+              />
+              <datalist id="salieri-voice-list">
+                {VOICE_OPTIONS.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </datalist>
+              <span className="settings-field__hint">
+                Any Edge TTS voice works — e.g. en-US-AriaNeural, en-US-GuyNeural,
+                en-GB-SoniaNeural, en-AU-NatashaNeural
+              </span>
+            </label>
+
+            <label className="settings-field">
+              <span className="settings-field__label">Speaking rate</span>
+              <select
+                className="settings-field__input"
+                value={ttsRate}
+                onChange={(e) => setTtsRate(e.target.value)}
+              >
+                <option value="-25%">Slower (-25%)</option>
+                <option value="+0%">Normal (+0%)</option>
+                <option value="+10%">Slightly fast (+10%)</option>
+                <option value="+25%">Fast (+25%)</option>
+              </select>
+            </label>
+          </div>
+        )}
+
+        <div className="settings-section">
+          <span className="settings-section__title">PERSONALITY</span>
+          <label className="settings-field">
+            <span className="settings-field__label">Name</span>
+            <input
+              className="settings-field__input"
+              type="text"
+              value={personalityName}
+              placeholder="Salieri"
+              onChange={(e) => setPersonalityName(e.target.value)}
+              spellCheck={false}
+            />
+            <span className="settings-field__hint">
+              Leave blank to keep the default persona
+            </span>
+          </label>
+
+          <label className="settings-field">
+            <span className="settings-field__label">Response length</span>
+            <select
+              className="settings-field__input"
+              value={responseLength}
+              onChange={(e) => setResponseLength(e.target.value)}
+            >
+              <option value="concise">Concise</option>
+              <option value="normal">Normal</option>
+              <option value="detailed">Detailed</option>
+            </select>
+          </label>
+
+          <label className="settings-field">
+            <span className="settings-field__label">Style notes</span>
+            <textarea
+              className="settings-field__input settings-field__textarea"
+              value={personalityStyle}
+              placeholder="Optional tone tweaks, topics to favor, quirks..."
+              onChange={(e) => setPersonalityStyle(e.target.value)}
+              rows={3}
+            />
+          </label>
+        </div>
 
         {testResult && (
           <p

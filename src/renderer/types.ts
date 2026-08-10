@@ -50,6 +50,11 @@ export interface Settings {
   base_url: string;
   ollama_host: string;
   tts_enabled: boolean;
+  tts_voice: string;
+  tts_rate: string;
+  personality_name: string;
+  personality_style: string;
+  response_length: 'concise' | 'normal' | 'detailed' | string;
   api_key_set: boolean;
   api_key_hint: string;
   model_defaults: Record<string, string>;
@@ -63,5 +68,10 @@ export type SettingsPatch = Partial<{
   base_url: string;
   ollama_host: string;
   tts_enabled: boolean;
+  tts_voice: string;
+  tts_rate: string;
+  personality_name: string;
+  personality_style: string;
+  response_length: string;
   api_key: string;
 }>;

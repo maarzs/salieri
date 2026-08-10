@@ -75,7 +75,9 @@ class PersonalityEngine:
     """Manages the AI companion's personality and emotional responses."""
 
     def __init__(self, character: dict = None):
-        self.character = character or DEFAULT_CHARACTER
+        # Copy the default so update_character() never mutates the shared
+        # module-level DEFAULT_CHARACTER dict.
+        self.character = dict(character) if character else dict(DEFAULT_CHARACTER)
 
     def build_prompt(self, user_message: str, memories: list[dict]) -> str:
         """Build a complete prompt with personality, memory, and context."""
@@ -109,11 +111,7 @@ class PersonalityEngine:
         messages = [
             {
                 "role": "system",
-                "content": (
-                    f"You are {self.character['name']}. {self.character['personality']}\n"
-                    f"Voice style: {self.character['voice_style']}\n"
-                    f"Keep responses natural and conversational. 2-4 sentences unless depth is needed."
-                ),
+                "content": self.system_prompt,
             }
         ]
 
@@ -139,9 +137,7 @@ class PersonalityEngine:
         - The current user message
         """
         system_parts = [
-            f"You are {self.character['name']}. {self.character['personality']}",
-            f"Voice style: {self.character['voice_style']}",
-            "Keep responses natural and conversational. 2-4 sentences unless depth is needed.",
+            self.system_prompt,
         ]
 
         # Persistent user profile (extracted facts about who the user is)
@@ -196,3 +192,53 @@ class PersonalityEngine:
     def update_character(self, updates: dict):
         """Update character settings."""
         self.character.update(updates)
+
+    def apply_settings(self, settings: dict) -> None:
+        """Apply user-facing personality settings from the Settings panel.
+
+        Recognized keys (all optional; empty/unknown values keep the current
+        behavior):
+        - personality_name: override the companion's name
+        - personality_style: free-text style notes appended to the system
+          prompt (tone, topics to favor, quirks, ...)
+        - response_length: 'concise' | 'normal' | 'detailed'
+        """
+        name = str(settings.get("personality_name") or "").strip()
+        if name:
+            self.character["name"] = name
+
+        style = str(settings.get("personality_style") or "").strip()
+        if style:
+            self.character["style_notes"] = style
+        else:
+            self.character.pop("style_notes", None)
+
+        length = str(settings.get("response_length") or "normal").strip().lower()
+        if length not in ("concise", "normal", "detailed"):
+            length = "normal"
+        self.character["response_length"] = length
+
+    @property
+    def response_length_instruction(self) -> str:
+        length = self.character.get("response_length", "normal")
+        if length == "concise":
+            return "Keep replies very short — one or two sentences maximum."
+        if length == "detailed":
+            return (
+                "Give thorough, detailed answers; expand with context and "
+                "examples when they add value."
+            )
+        return "Keep responses natural and conversational. 2-4 sentences unless depth is needed."
+
+    @property
+    def system_prompt(self) -> str:
+        """System-prompt body shared by build_messages/build_chat_context."""
+        parts = [
+            f"You are {self.character['name']}. {self.character['personality']}",
+            f"Voice style: {self.character['voice_style']}",
+            self.response_length_instruction,
+        ]
+        style_notes = self.character.get("style_notes")
+        if style_notes:
+            parts.append(f"Style notes from the user: {style_notes}")
+        return "\n".join(parts)
