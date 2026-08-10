@@ -1,6 +1,8 @@
 # Salieri AI
 
 [![CI](https://github.com/maarzs/salieri/actions/workflows/ci.yml/badge.svg)](https://github.com/maarzs/salieri/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/maarzs/salieri?label=release&style=flat-square)](https://github.com/maarzs/salieri/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/maarzs/salieri/total?style=flat-square)](https://github.com/maarzs/salieri/releases)
 
 <div align="center">
 
@@ -69,7 +71,19 @@ Unlike browser-based chatbots, Salieri is **always on your desktop**: an always-
 | **Memory** | SQLite + sentence-transformers | Persistent, semantic search, zero config |
 | **Communication** | WebSocket (ws) | Real-time bidirectional, low latency |
 
-## Getting Started
+## Download (Windows)
+
+Pre-built releases are on the [GitHub Releases page](https://github.com/maarzs/salieri/releases) — grab the latest `.exe` and run it. Each release bundles the app **plus the fully-frozen AI backend** (faster-whisper STT, Edge TTS, SQLite memory): no Python, no Node.js, no manual dependencies.
+
+| Asset | What it is |
+|-------|------------|
+| `Salieri.AI-<version>-x64-setup.exe` | NSIS installer — installs the app, Start Menu shortcut, update support |
+| `Salieri.AI-<version>-x64-portable.exe` | Portable single exe — no install, runs from anywhere (self-extracts on first launch, takes a few seconds) |
+
+> [!NOTE]
+> Local LLM inference still needs **Ollama** ([install](https://ollama.com), then `ollama pull llama3.2:3b`). Alternatively, plug any OpenAI-compatible API key into the in-app Settings panel and skip local models entirely.
+
+## Getting Started (from source)
 
 ### Prerequisites
 
