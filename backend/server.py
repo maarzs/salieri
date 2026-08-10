@@ -125,6 +125,12 @@ class SalieriBackend:
                 "settings": self.settings.public(),
             })
 
+        elif msg_type == "load_history":
+            await self.handle_load_history(websocket, data.get("limit", 100))
+
+        elif msg_type == "clear_history":
+            await self.handle_clear_history(websocket)
+
         elif msg_type == "update_settings":
             await self.handle_update_settings(websocket, data.get("settings", {}))
 
@@ -200,6 +206,39 @@ class SalieriBackend:
             await self.send_json(websocket, {
                 "type": "error",
                 "message": f"Failed to generate response: {str(e)}"
+            })
+
+    async def handle_load_history(self, websocket, limit: int = 100):
+        """Restore prior exchanges so the UI isn't blank on every launch.
+
+        Runs on a worker thread: sqlite reads can block when the DB is large,
+        and we never want to stall the websocket loop.
+        """
+        try:
+            limit = max(1, min(int(limit or 100), 1000))
+        except (TypeError, ValueError):
+            limit = 100
+        try:
+            history = await asyncio.to_thread(self.memory.get_history, limit)
+            await self.send_json(websocket, {"type": "history", "history": history})
+        except Exception as e:
+            logger.error(f"History load failed: {e}")
+            await self.send_json(websocket, {
+                "type": "error",
+                "message": f"Failed to load history: {str(e)}",
+            })
+
+    async def handle_clear_history(self, websocket):
+        """Wipe stored exchanges and tell the UI to clear its transcript."""
+        try:
+            removed = await asyncio.to_thread(self.memory.clear_conversations)
+            await self.send_json(websocket, {"type": "history_cleared", "removed": removed})
+            logger.info(f"Cleared {removed} conversation exchanges")
+        except Exception as e:
+            logger.error(f"History clear failed: {e}")
+            await self.send_json(websocket, {
+                "type": "error",
+                "message": f"Failed to clear history: {str(e)}",
             })
 
     async def handle_update_settings(self, websocket, patch: dict):

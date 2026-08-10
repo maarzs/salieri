@@ -130,6 +130,39 @@ export default function App() {
           setIsSaving(false);
           break;
 
+        case 'history':
+          // Restore persisted exchanges after (re)connect — but only when the
+          // transcript is still empty, so a mid-session reconnect never
+          // wipes or duplicates messages the user already has on screen.
+          setMessages((prev) => {
+            if (prev.length > 0 || !data.history?.length) return prev;
+            const restored: Message[] = [];
+            for (const entry of data.history) {
+              restored.push({
+                id: `hist-${entry.timestamp}-u`,
+                role: 'user',
+                content: entry.user_message,
+                timestamp: entry.timestamp,
+              });
+              restored.push({
+                id: `hist-${entry.timestamp}-s`,
+                role: 'salieri',
+                content: entry.response,
+                timestamp: entry.timestamp,
+              });
+            }
+            return restored;
+          });
+          if (data.history?.length) {
+            const last = data.history[data.history.length - 1];
+            if (last?.emotion) setEmotion(last.emotion);
+          }
+          break;
+
+        case 'history_cleared':
+          setMessages([]);
+          break;
+
         case 'models':
           setModels(data.models ?? []);
           break;
@@ -144,9 +177,13 @@ export default function App() {
   });
 
   // Pull current config once the backend is reachable (and again after any
-  // reconnect, so the panel never shows stale values).
+  // reconnect, so the panel never shows stale values). Also restore persisted
+  // history — the handler only applies it when the transcript is empty.
   useEffect(() => {
-    if (isConnected) sendMessage({ type: 'get_settings' });
+    if (isConnected) {
+      sendMessage({ type: 'get_settings' });
+      sendMessage({ type: 'load_history', limit: 100 });
+    }
   }, [isConnected, sendMessage]);
 
   useEffect(() => {
@@ -224,6 +261,10 @@ export default function App() {
     sendMessage({ type: 'list_models' });
   }, [sendMessage]);
 
+  const handleClearHistory = useCallback(() => {
+    sendMessage({ type: 'clear_history' });
+  }, [sendMessage]);
+
   const playAudio = (base64Audio: string) => {
     const audio = new Audio(`data:audio/wav;base64,${base64Audio}`);
     audio.onended = () => setIsSpeaking(false);
@@ -232,7 +273,7 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <TitleBar onOpenSettings={handleOpenSettings} />
+      <TitleBar onOpenSettings={handleOpenSettings} onClearHistory={handleClearHistory} />
 
       {showSettings ? (
         <SettingsPanel

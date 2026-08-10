@@ -29,6 +29,17 @@ export interface WSMessage {
   models?: string[];
   saved?: boolean;
   ok?: boolean;
+  history?: HistoryEntry[];
+  removed?: number;
+  limit?: number;
+}
+
+/** One persisted exchange, as returned by the `load_history` endpoint. */
+export interface HistoryEntry {
+  user_message: string;
+  response: string;
+  emotion: string;
+  timestamp: number;
 }
 
 /** LLM configuration as returned by the backend. The API key is never sent

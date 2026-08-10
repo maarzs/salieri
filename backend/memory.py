@@ -86,6 +86,39 @@ class MemoryStore:
         )
         self.conn.commit()
 
+    def get_history(self, limit: int = 100) -> list[dict]:
+        """Return the most recent exchanges, oldest first, for UI restore.
+
+        Timestamps are normalized to epoch milliseconds so the renderer can
+        render them directly (SQLite's CURRENT_TIMESTAMP is UTC).
+        """
+        rows = self.conn.execute(
+            "SELECT user_message, salieri_response, emotion, timestamp "
+            "FROM conversations ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+
+        history = []
+        for user_msg, response, emotion, ts in reversed(rows):
+            try:
+                dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+                epoch_ms = int(dt.replace(tzinfo=None).timestamp() * 1000)
+            except (TypeError, ValueError):
+                epoch_ms = int(datetime.now().timestamp() * 1000)
+            history.append({
+                "user_message": user_msg,
+                "response": response,
+                "emotion": emotion or "neutral",
+                "timestamp": epoch_ms,
+            })
+        return history
+
+    def clear_conversations(self) -> int:
+        """Delete all stored conversation exchanges. Returns rows removed."""
+        cur = self.conn.execute("DELETE FROM conversations")
+        self.conn.commit()
+        return cur.rowcount or 0
+
     def store_memory(self, content: str, category: str = "general", importance: float = 0.5):
         """Store a fact or memory with optional embedding."""
         embedding = None
