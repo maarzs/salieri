@@ -127,11 +127,13 @@ class PersonalityEngine:
         user_message: str,
         memories: list[dict],
         recent_context: list[dict],
+        user_profile: str = "",
     ) -> list[dict]:
         """Build the full message array for the LLM API.
 
         This is the primary method used by the server. It combines:
         - System prompt with personality
+        - Persistent user profile (name, age, occupation, ...) when known
         - Memory context as a system note
         - Recent conversation history
         - The current user message
@@ -141,6 +143,10 @@ class PersonalityEngine:
             f"Voice style: {self.character['voice_style']}",
             "Keep responses natural and conversational. 2-4 sentences unless depth is needed.",
         ]
+
+        # Persistent user profile (extracted facts about who the user is)
+        if user_profile:
+            system_parts.append(user_profile)
 
         # Inject relevant memories into the system prompt
         if memories:

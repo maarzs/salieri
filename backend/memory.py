@@ -8,6 +8,7 @@ using sentence embeddings for semantic similarity.
 import sqlite3
 import json
 import logging
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -20,6 +21,31 @@ except ImportError:
     HAS_TRANSFORMERS = False
     logger.warning("sentence-transformers not installed, semantic search disabled")
     logger.debug("sentence_transformers import failed", exc_info=True)
+
+
+# ---------------------------------------------------------------------------
+# Lightweight fact extraction — offline, zero-dependency regex patterns.
+# Each entry: (pattern, category, profile_key or None).
+# The *last* capture group is always the extracted value (used for profile
+# keys); the cleaned full match becomes the stored memory text.
+# ---------------------------------------------------------------------------
+FACT_PATTERNS = [
+    (re.compile(r"\bmy name is\s+([A-Za-z][\w'-]*)", re.I), "name", "name"),
+    (re.compile(r"\bi(?:'m| am) called\s+([A-Za-z][\w'-]*)", re.I), "name", "name"),
+    (re.compile(r"\bcall me\s+([A-Za-z][\w'-]*)", re.I), "name", "name"),
+    (re.compile(r"\bi(?:'m| am)\s+(\d{1,2})\s+years?\s+old\b", re.I), "age", "age"),
+    (re.compile(r"\bi (?:work at|work for)\s+(.{2,60}?)(?=[.,!?;]|$)", re.I), "occupation", "occupation"),
+    (re.compile(r"\bi live in\s+(.{2,60}?)(?=[.,!?;]|$)", re.I), "location", "location"),
+    (re.compile(r"\bmy favorite ([\w ]+?) (?:is|are)\s+(.{2,60}?)(?=[.,!?;]|$)", re.I), "preference", None),
+    (re.compile(r"\bi (?:really )?(?:like|love|enjoy)\s+(.{2,60}?)(?=[.,!?;]|$)", re.I), "interest", None),
+]
+
+# Guard against verb-clause false positives on the loose like/love pattern,
+# e.g. "I like to think that..." must not become an "interest" fact.
+_INTEREST_STOP_PREFIXES = (
+    "to ", "that ", "when ", "how ", "what ", "where ", "who ", "why ",
+    "it when", "being ",
+)
 
 
 class MemoryStore:
@@ -131,34 +157,63 @@ class MemoryStore:
         )
         self.conn.commit()
 
+    def has_memory(self, content: str, category: str) -> bool:
+        """Case-insensitive exact-match dedup check for stored facts."""
+        row = self.conn.execute(
+            "SELECT 1 FROM memories WHERE lower(content) = lower(?) AND category = ?",
+            (content.strip(), category),
+        ).fetchone()
+        return row is not None
+
+    def extract_facts(self, text: str) -> list[dict]:
+        """Scan a user message for personal facts and persist any new ones.
+
+        Zero-dependency (regex only), so it works without the optional
+        sentence-transformers install. Returns the newly stored facts so
+        callers can log or surface them.
+        """
+        stored = []
+        for pattern, category, profile_key in FACT_PATTERNS:
+            for match in pattern.finditer(text):
+                value = match.group(match.lastindex).strip()
+                if category == "interest" and value.lower().startswith(_INTEREST_STOP_PREFIXES):
+                    continue  # verb clause, not a hobby/object of interest
+                fact = re.sub(r"\s+", " ", match.group(0)).strip().rstrip(".,!?;")
+                if self.has_memory(fact, category):
+                    continue
+                self.store_memory(fact, category=category)
+                if profile_key:
+                    self.set_user_profile(profile_key, value)
+                stored.append({"content": fact, "category": category})
+        if stored:
+            logger.info(f"Memory: extracted {len(stored)} fact(s) from user message")
+        return stored
+
     def search(self, query: str, limit: int = 5) -> list[dict]:
-        """Search for relevant memories and conversations."""
+        """Return stored FACTS relevant to the query.
+
+        Recent conversations are deliberately NOT included here — the server
+        already injects them via get_recent_context(), and returning them
+        from both paths duplicated every exchange in the prompt.
+
+        Retrieval strategy:
+        - With sentence-transformers installed: cosine similarity over
+          stored embeddings (semantic).
+        - Without it: keyword-overlap scoring (works offline, zero deps).
+        """
         results = []
 
-        # Always get recent conversations
-        recent = self.conn.execute(
-            "SELECT user_message, salieri_response, emotion, timestamp "
-            "FROM conversations ORDER BY timestamp DESC LIMIT ?",
-            (limit,),
+        all_memories = self.conn.execute(
+            "SELECT id, content, category, importance, embedding FROM memories"
         ).fetchall()
 
-        for row in recent:
-            results.append({
-                "type": "conversation",
-                "user": row[0],
-                "response": row[1],
-                "emotion": row[2],
-                "timestamp": row[3],
-            })
+        if not all_memories:
+            return results
 
         # Semantic search if embedder is available
         self._ensure_embedder()
         if self.embedder:
             query_embedding = self.embedder.encode(query)
-            all_memories = self.conn.execute(
-                "SELECT id, content, category, importance, embedding FROM memories"
-            ).fetchall()
-
             scored = []
             for mem in all_memories:
                 if mem[4]:  # Has embedding
@@ -178,6 +233,40 @@ class MemoryStore:
                         "category": mem[2],
                         "relevance": float(score),
                     })
+            # Facts stored before the embedder was available have no
+            # embedding — fall through so keyword scoring can still reach them.
+            if results or all(m[4] for m in all_memories):
+                return results
+
+        # Keyword fallback: score each fact by overlapping significant words.
+        query_words = {
+            w for w in re.findall(r"[a-z0-9']+", query.lower())
+            if len(w) > 2
+        }
+        if not query_words:
+            return results
+
+        scored = []
+        for _id, content, category, importance, _emb in all_memories:
+            mem_words = set(re.findall(r"[a-z0-9']+", content.lower()))
+            overlap = len(query_words & mem_words)
+            if overlap == 0:
+                continue
+            # Normalized overlap + a small boost for identity-type facts so
+            # "what's my name?" reliably surfaces the name fact.
+            score = overlap / max(1, min(len(query_words), len(mem_words)))
+            if category in ("name", "age", "occupation", "location"):
+                score += 0.25 * overlap
+            scored.append((score, content, category))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        for score, content, category in scored[:limit]:
+            results.append({
+                "type": "memory",
+                "content": content,
+                "category": category,
+                "relevance": round(score, 3),
+            })
 
         return results
 
@@ -185,6 +274,27 @@ class MemoryStore:
         """Get stored user profile data."""
         rows = self.conn.execute("SELECT key, value FROM user_profile").fetchall()
         return {row[0]: row[1] for row in rows}
+
+    def profile_summary(self) -> str:
+        """Compact one-liner profile block for the system prompt.
+
+        Returns an empty string when nothing is known yet, so callers can
+        append it unconditionally.
+        """
+        profile = self.get_user_profile()
+        if not profile:
+            return ""
+        labels = {
+            "name": "Name",
+            "age": "Age",
+            "occupation": "Occupation",
+            "location": "Lives in",
+        }
+        parts = []
+        for key, label in labels.items():
+            if profile.get(key):
+                parts.append(f"{label}: {profile[key]}")
+        return "What you know about the user: " + "; ".join(parts) + "."
 
     def set_user_profile(self, key: str, value: str):
         """Set a user profile value."""

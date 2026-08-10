@@ -152,13 +152,23 @@ class SalieriBackend:
     async def handle_chat(self, websocket, content: str):
         """Process a chat message through the full pipeline."""
         try:
+            # Extract personal facts (name, age, occupation, ...) from the
+            # user's message and persist them. Runs on a worker thread so a
+            # slow/blocked DB never stalls the websocket loop. Extract BEFORE
+            # building the prompt so this very message can benefit.
+            try:
+                await asyncio.to_thread(self.memory.extract_facts, content)
+            except Exception as fact_err:
+                logger.warning(f"Fact extraction failed (non-critical): {fact_err}")
+
             # Retrieve relevant memories and recent context
             memories = self.memory.search(content, limit=5)
             recent_context = self.memory.get_recent_context(count=10)
+            profile = self.memory.profile_summary()
 
             # Build the message array with personality, memory, and context
             messages = self.personality.build_messages(
-                content, memories, recent_context
+                content, memories, recent_context, user_profile=profile
             )
 
             # Generate response from LLM
@@ -189,17 +199,25 @@ class SalieriBackend:
             # Store conversation in memory
             self.memory.store_conversation(content, response_text)
 
-            # Generate TTS audio (non-critical - don't fail the chat if TTS breaks)
+            # Generate TTS audio. Non-critical: a hung edge-tts call (flaky
+            # network) must never block the chat loop, so it's bounded by a
+            # timeout. `tts_done` is ALWAYS sent — success, failure, or TTS
+            # disabled — so clients have a deterministic end-of-turn marker.
             try:
-                audio_base64 = await self.tts.generate(response_text)
+                audio_base64 = await asyncio.wait_for(
+                    self.tts.generate(response_text), timeout=30
+                )
                 if audio_base64:
                     await self.send_json(websocket, {
                         "type": "tts_audio",
                         "audio": audio_base64,
                     })
-                    await self.send_json(websocket, {"type": "tts_done"})
+            except asyncio.TimeoutError:
+                logger.warning("TTS timed out after 30s (non-critical), skipping audio")
             except Exception as tts_err:
                 logger.warning(f"TTS failed (non-critical): {tts_err}")
+            finally:
+                await self.send_json(websocket, {"type": "tts_done"})
 
         except Exception as e:
             logger.error(f"Chat error: {e}")
