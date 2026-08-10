@@ -1,5 +1,7 @@
 # Salieri AI
 
+[![CI](https://github.com/maarzs/salieri/actions/workflows/ci.yml/badge.svg)](https://github.com/maarzs/salieri/actions/workflows/ci.yml)
+
 <div align="center">
 
 **Desktop AI Companion — Inspired by the Amadeus System from Steins;Gate 0**
@@ -26,6 +28,7 @@ Unlike browser-based chatbots, Salieri is **always on your desktop**: an always-
 - **🎭 Emotion System** — Detects and expresses emotions through text and avatar
 - **📞 Voice Calls** — Full-screen voice call mode for immersive conversation
 - **🖥️ Desktop Integration** — Always-on-top, transparent window, system tray
+- **⚙️ In-App Settings Panel** — Pick the LLM provider, TTS voice, and personality without editing files
 
 ### Architecture
 
@@ -108,20 +111,44 @@ The app will appear as a floating window on your desktop. Use `Alt+Shift+S` to t
 
 ## Configuration
 
+### In-App Settings Panel
+
+Open the ⚙️ gear button in the title bar. The panel covers:
+
+- **LLM** — provider (Ollama local / OpenAI-compatible cloud), model, host/API key
+- **Voice output** — enable/disable TTS, pick an Edge TTS voice, adjust speaking rate
+- **Personality** — companion name, free-text style notes, response length
+  (concise / normal / detailed)
+
+Settings are persisted to `settings.json` next to the memory database, so they
+survive updates. API keys are never sent back to the UI — the panel only sees
+whether a key is set (plus a last-4-char hint).
+
 ### Environment Variables
+
+Everything the Settings panel controls can also be set via environment
+variables (or `backend/.env`). The in-app setting always wins when present.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SALIERI_LLM_PROVIDER` | `ollama` | `ollama` or `openai` |
-| `SALIERI_LLM_MODEL` | `llama3.2:3b` | Model name |
+| `SALIERI_LLM_MODEL` | `llama3.2:3b` / `gpt-4o-mini` | Model name (default depends on provider) |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama API URL |
+| `OPENAI_BASE_URL` | — | Custom endpoint for OpenAI-compatible providers |
 | `OPENAI_API_KEY` | — | Required if using OpenAI |
+| `SALIERI_TTS_ENABLED` | `true` | Enable voice output |
 | `SALIERI_TTS_VOICE` | `en-US-AriaNeural` | Edge TTS voice |
+| `SALIERI_TTS_RATE` | `+10%` | Speaking rate adjustment |
+| `SALIERI_PERSONALITY_NAME` | — | Override the companion's name |
+| `SALIERI_PERSONALITY_STYLE` | — | Free-text style notes for the system prompt |
+| `SALIERI_RESPONSE_LENGTH` | `normal` | `concise`, `normal`, or `detailed` |
 | `SALIERI_STT_MODEL` | `small` | Whisper model size |
 
 ### Character Customization
 
-Edit `backend/personality.py` to customize Salieri's personality, voice style, and behavior. The character definition is a plain dictionary — modify the `personality` field to change how Salieri speaks and acts.
+The default character lives in `backend/personality.py`. Most customization
+is available through the Settings panel; edit the file only to change the core
+personality text, greeting, or emotion keywords.
 
 ## Project Structure
 
@@ -133,7 +160,7 @@ salieri-app/
 │   │   └── preload.ts  # Context bridge for renderer
 │   └── renderer/       # React frontend
 │       ├── App.tsx     # Main app component
-│       ├── components/ # UI components
+│       ├── components/ # Avatar, Chat, VoiceCall, SettingsPanel, ...
 │       ├── hooks/      # WebSocket hook
 │       └── styles/     # CSS
 ├── backend/            # Python AI backend
@@ -141,11 +168,39 @@ salieri-app/
 │   ├── llm.py          # Ollama/OpenAI LLM integration
 │   ├── memory.py       # SQLite + vector memory store
 │   ├── personality.py  # Character system & emotions
+│   ├── settings.py     # Settings store (JSON + env precedence)
 │   ├── tts.py          # Edge TTS + SAPI fallback
-│   └── stt.py          # faster-whisper speech recognition
+│   ├── stt.py          # faster-whisper speech recognition
+│   └── tests/          # pytest suite (memory, personality, settings, server)
+├── .github/workflows/  # CI: frontend builds + backend pytest
 ├── assets/             # App icons, sprites
 └── package.json
 ```
+
+## Development
+
+### Tests
+
+The backend has a pytest suite (71 tests) covering memory extraction/search,
+personality prompt building, the settings store, and the WebSocket server
+handlers (chat pipeline with stubbed STT/LLM/TTS — no network or model
+downloads needed):
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
+
+### CI
+
+GitHub Actions runs on every push and PR:
+
+- **Frontend** — `npm run build:main` and `npm run build:renderer`
+  (TypeScript type-check + Vite bundle, Node 22)
+- **Backend** — `pytest -v` (Python 3.11)
+
+See `.github/workflows/ci.yml`.
 
 ## Inspiration
 
