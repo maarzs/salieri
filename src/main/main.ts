@@ -19,11 +19,17 @@ let isQuitting = false;
 const isDev = !app.isPackaged;
 const PYTHON_PORT = 9876;
 
+// assets/ is included in the electron-builder `files` list, so this relative
+// path resolves identically in dev and in the packaged app (nativeImage reads
+// through app.asar transparently).
+function assetPath(name: string): string {
+  return path.join(__dirname, '../../assets', name);
+}
+
 function createTrayIcon(): Tray {
-  // Create a simple 16x16 tray icon programmatically
-  const icon = nativeImage.createEmpty();
+  const icon = nativeImage.createFromPath(assetPath('tray.png'));
   const trayIcon = new Tray(
-    icon.resize({ width: 16, height: 16 })
+    icon.isEmpty() ? nativeImage.createEmpty() : icon.resize({ width: 16, height: 16 })
   );
 
   const contextMenu = Menu.buildFromTemplate([
@@ -72,6 +78,7 @@ function createWindow(): BrowserWindow {
     height: 650,
     x: width - 420,
     y: height - 670,
+    icon: assetPath('icon.png'),
     frame: false,
     transparent: true,
     alwaysOnTop: true,

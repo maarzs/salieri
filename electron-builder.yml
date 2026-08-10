@@ -8,6 +8,7 @@ directories:
 files:
   - dist/main/**
   - dist/renderer/**
+  - assets/**
   - package.json
 
 # Extra files copied into the app's resources folder (process.resourcesPath).
@@ -17,9 +18,9 @@ extraResources:
   # sits at resourcesPath/backend/salieri-backend.exe with its DLLs alongside.
   - from: backend/dist/salieri-backend
     to: backend
-  - from: backend/.env
-    to: backend/.env
-    # Optional: only bundle if present (it is, in this repo).
+  # NOTE: backend/.env is intentionally NOT bundled here. It may contain a
+  # live API key and would be shipped to every user of the installer. Keys
+  # belong in the in-app Settings panel (persisted to %APPDATA%\Salieri).
 
 win:
   target:
