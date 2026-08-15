@@ -600,3 +600,375 @@ html, body, #root {
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
   40% { transform: scale(1); opacity: 1; }
 }
+
+/* ============================================================
+   MASCOT — Clippy-style desktop companion
+   ============================================================ */
+.mascot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.mascot:hover {
+  transform: scale(1.06);
+}
+
+.mascot__image {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  image-rendering: auto;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3));
+  position: relative;
+  z-index: 2;
+}
+
+.mascot--small .mascot__image {
+  width: 80px;
+  height: 80px;
+}
+
+/* Idle floating animation */
+.mascot--idle {
+  animation: mascot-float 3s ease-in-out infinite;
+}
+
+/* Breathing scale pulse */
+.mascot--breathing {
+  animation: mascot-float 3s ease-in-out infinite, mascot-breathe 4s ease-in-out infinite;
+}
+
+/* Speaking glow & bounce */
+.mascot--speaking {
+  animation: mascot-speak-bounce 0.6s ease-in-out infinite;
+}
+
+.mascot--speaking .mascot__image {
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3))
+          drop-shadow(0 0 20px rgba(124, 92, 252, 0.5));
+}
+
+/* Glow aura behind mascot */
+.mascot__glow {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 92, 252, 0.25) 0%, transparent 70%);
+  z-index: 1;
+  animation: mascot-glow-pulse 3s ease-in-out infinite;
+}
+
+.mascot--small .mascot__glow {
+  width: 60px;
+  height: 60px;
+}
+
+.mascot--speaking .mascot__glow {
+  animation: mascot-glow-speak 0.8s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(124, 92, 252, 0.4) 0%, transparent 70%);
+}
+
+/* Emotion modifiers */
+.mascot--happy .mascot__image { filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3)) brightness(1.08); }
+.mascot--sad .mascot__image { filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3)) saturate(0.7) brightness(0.92); }
+.mascot--thinking .mascot__image { transform: rotate(-3deg); }
+.mascot--surprised .mascot__image { animation: mascot-surprise 0.4s ease-out; }
+.mascot--concerned .mascot__image { animation: mascot-sway 2s ease-in-out infinite; }
+.mascot--sleepy .mascot__image { filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3)) brightness(0.85); opacity: 0.85; }
+
+/* Blink overlay */
+.mascot__blink {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  animation: mascot-blink 5s ease-in-out infinite;
+}
+
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes mascot-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes mascot-speak-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.03); }
+}
+
+@keyframes mascot-glow-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+
+@keyframes mascot-glow-speak {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes mascot-surprise {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+@keyframes mascot-sway {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(2deg); }
+  75% { transform: rotate(-2deg); }
+}
+
+@keyframes mascot-blink {
+  0%, 92%, 100% { opacity: 0; }
+  95%, 97% { opacity: 0.7; }
+}
+
+/* ============================================================
+   SPEECH BUBBLE — Clippy-style balloon
+   ============================================================ */
+.speech-bubble {
+  position: relative;
+  background: rgba(245, 243, 250, 0.97);
+  border-radius: 16px;
+  padding: 12px 16px;
+  max-width: 320px;
+  max-height: 130px;
+  overflow: hidden;
+  color: #1a1a2e;
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), 0 1px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  margin: 0 auto 8px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  word-wrap: break-word;
+}
+
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid rgba(245, 243, 250, 0.97);
+}
+
+.speech-bubble--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  animation: bubble-enter 0.3s ease-out;
+}
+
+.speech-bubble--hidden {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.speech-bubble__text {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.speech-bubble__thinking {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.speech-bubble__thinking span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6a6a80;
+  animation: dotBounce 1.4s ease-in-out infinite;
+}
+
+.speech-bubble__thinking span:nth-child(2) { animation-delay: 0.2s; }
+.speech-bubble__thinking span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bubble-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================================
+   COMPACT INPUT — hover-to-show input bar
+   ============================================================ */
+.compact-input-wrapper {
+  width: 100%;
+  padding: 12px 16px 8px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  /* Taller hover zone for discoverability */
+  margin-top: -16px;
+  padding-top: 28px;
+}
+
+.compact-input-wrapper:hover,
+.compact-input-wrapper:focus-within {
+  opacity: 1;
+}
+
+.compact-input {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: rgba(15, 15, 25, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 6px 4px 14px;
+  height: 36px;
+}
+
+.compact-input__field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  min-width: 0;
+}
+
+.compact-input__field::placeholder {
+  color: var(--text-muted);
+}
+
+.compact-input__btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.compact-input__btn--send {
+  background: var(--accent);
+  color: white;
+}
+
+.compact-input__btn--send:hover {
+  background: #9478fc;
+}
+
+.compact-input__btn--mic {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.compact-input__btn--mic:hover {
+  color: var(--accent);
+}
+
+.compact-input__btn--mic--active {
+  background: var(--danger);
+  color: white;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* ============================================================
+   APP LAYOUT MODES — compact (mascot) vs expanded (chat)
+   ============================================================ */
+
+/* Compact: transparent, just mascot + bubble + input */
+.app-container--compact {
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 16px;
+}
+
+/* Expanded: glassmorphism panel with chat */
+.app-container--expanded {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: expand-enter 0.25s ease-out;
+}
+
+@keyframes expand-enter {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Character selector in settings */
+.character-selector {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.character-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-input);
+}
+
+.character-option:hover {
+  border-color: var(--text-muted);
+}
+
+.character-option--selected {
+  border-color: var(--accent);
+  background: rgba(124, 92, 252, 0.1);
+}
+
+.character-option__image {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.character-option__label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

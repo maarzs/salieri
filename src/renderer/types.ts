@@ -59,6 +59,7 @@ export interface Settings {
   api_key_hint: string;
   model_defaults: Record<string, string>;
   settings_path: string;
+  mascot_character: 'male' | 'female';
 }
 
 /** Partial update sent to the backend. Omit api_key to keep the stored one. */
@@ -74,4 +75,5 @@ export type SettingsPatch = Partial<{
   personality_style: string;
   response_length: string;
   api_key: string;
+  mascot_character: 'male' | 'female';
 }>;

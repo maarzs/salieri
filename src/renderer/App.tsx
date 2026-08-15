@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Mascot } from './components/Mascot';
+import { SpeechBubble } from './components/SpeechBubble';
+import { CompactInput } from './components/CompactInput';
 import { Avatar } from './components/Avatar';
 import { ChatArea } from './components/ChatArea';
 import { InputArea } from './components/InputArea';
@@ -10,6 +13,10 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { Message, AppStatus, Settings, SettingsPatch } from './types';
 
 const WS_URL = 'ws://localhost:9876';
+
+const COMPACT_SIZE = { width: 380, height: 520 };
+const EXPANDED_SIZE = { width: 380, height: 600 };
+const BUBBLE_AUTO_HIDE_MS = 8000;
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -27,14 +34,16 @@ export default function App() {
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Clippy-style state
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [bubbleMessage, setBubbleMessage] = useState<string | null>(null);
+  const [bubbleVisible, setBubbleVisible] = useState(false);
+  const [selectedCharacter, setSelectedCharacter] = useState<'male' | 'female'>('female');
+  const bubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const { sendMessage, isConnected } = useWebSocket(WS_URL, {
     onMessage: (data) => {
       switch (data.type) {
-        // The backend streams the reply as `chat_stream` chunks and THEN sends
-        // `chat_response` carrying the same full text plus the detected emotion.
-        // Appending it here would render the reply twice, so treat it as
-        // metadata only: apply the emotion, and reconcile the streamed bubble
-        // with the authoritative full text instead of adding a new one.
         case 'chat_response':
           setMessages((prev) => {
             const last = prev[prev.length - 1];
@@ -42,8 +51,6 @@ export default function App() {
             if (last && last.role === 'salieri' && full) {
               return [...prev.slice(0, -1), { ...last, content: full }];
             }
-            // No streamed bubble to reconcile (e.g. streaming was skipped) —
-            // this is the only copy of the reply, so render it.
             if (!full) return prev;
             return [
               ...prev,
@@ -57,6 +64,10 @@ export default function App() {
           });
           setEmotion(data.emotion || 'neutral');
           setStatus('idle');
+          // Show speech bubble with latest response (compact mode)
+          if (data.content) {
+            showBubble(data.content);
+          }
           break;
 
         case 'chat_stream':
@@ -78,6 +89,9 @@ export default function App() {
               },
             ];
           });
+          // Update speech bubble with streaming content
+          setBubbleMessage((prev) => (prev ?? '') + (data.content ?? ''));
+          if (!bubbleVisible) setBubbleVisible(true);
           break;
 
         case 'stream_end':
@@ -125,15 +139,17 @@ export default function App() {
           break;
 
         case 'settings':
-          // Inbound frames always carry the full resolved config.
-          if (data.settings) setSettings(data.settings as Settings);
+          if (data.settings) {
+            const s = data.settings as Settings;
+            setSettings(s);
+            if (s.mascot_character) {
+              setSelectedCharacter(s.mascot_character);
+            }
+          }
           setIsSaving(false);
           break;
 
         case 'history':
-          // Restore persisted exchanges after (re)connect — but only when the
-          // transcript is still empty, so a mid-session reconnect never
-          // wipes or duplicates messages the user already has on screen.
           setMessages((prev) => {
             if (prev.length > 0 || !data.history?.length) return prev;
             const restored: Message[] = [];
@@ -176,9 +192,38 @@ export default function App() {
     onDisconnect: () => setStatus('disconnected'),
   });
 
-  // Pull current config once the backend is reachable (and again after any
-  // reconnect, so the panel never shows stale values). Also restore persisted
-  // history — the handler only applies it when the transcript is empty.
+  // Speech bubble management
+  const showBubble = useCallback((message: string) => {
+    setBubbleMessage(message);
+    setBubbleVisible(true);
+    // Clear any existing timer
+    if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    // Auto-hide after 8s
+    bubbleTimerRef.current = setTimeout(() => {
+      setBubbleVisible(false);
+    }, BUBBLE_AUTO_HIDE_MS);
+  }, []);
+
+  const dismissBubble = useCallback(() => {
+    setBubbleVisible(false);
+    if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+  }, []);
+
+  // Toggle between compact and expanded
+  const toggleExpand = useCallback(() => {
+    setIsExpanded((prev) => {
+      const next = !prev;
+      const size = next ? EXPANDED_SIZE : COMPACT_SIZE;
+      window.salieriAPI?.resizeWindow(size.width, size.height);
+      if (next) {
+        // Dismiss bubble when expanding
+        dismissBubble();
+      }
+      return next;
+    });
+  }, [dismissBubble]);
+
+  // Pull config on connect
   useEffect(() => {
     if (isConnected) {
       sendMessage({ type: 'get_settings' });
@@ -201,6 +246,13 @@ export default function App() {
     };
   }, []);
 
+  // Cleanup bubble timer
+  useEffect(() => {
+    return () => {
+      if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
+    };
+  }, []);
+
   const handleSendMessage = useCallback(
     (content: string) => {
       const userMsg: Message = {
@@ -211,6 +263,9 @@ export default function App() {
       };
       setMessages((prev) => [...prev, userMsg]);
       setStatus('thinking');
+      // Reset bubble for streaming
+      setBubbleMessage(null);
+      setBubbleVisible(true);
       sendMessage({ type: 'chat', content });
     },
     [sendMessage]
@@ -226,6 +281,14 @@ export default function App() {
     }
   }, [isRecording, sendMessage]);
 
+  const handleMicToggle = useCallback(
+    (active: boolean) => {
+      setIsRecording(active);
+      sendMessage({ type: active ? 'stt_start' : 'stt_stop' });
+    },
+    [sendMessage]
+  );
+
   const handleStartVoiceCall = useCallback(() => {
     setIsVoiceCall(true);
     sendMessage({ type: 'voice_call_start' });
@@ -240,6 +303,10 @@ export default function App() {
     (patch: SettingsPatch) => {
       setIsSaving(true);
       setTestResult(null);
+      // Update local character immediately for responsive feel
+      if (patch.mascot_character) {
+        setSelectedCharacter(patch.mascot_character);
+      }
       sendMessage({ type: 'update_settings', settings: patch });
     },
     [sendMessage]
@@ -257,7 +324,6 @@ export default function App() {
   const handleOpenSettings = useCallback(() => {
     setShowSettings(true);
     setTestResult(null);
-    // Populate the model dropdown from the currently configured endpoint.
     sendMessage({ type: 'list_models' });
   }, [sendMessage]);
 
@@ -271,45 +337,87 @@ export default function App() {
     audio.play().catch(console.error);
   };
 
-  return (
-    <div className="app-container">
-      <TitleBar onOpenSettings={handleOpenSettings} onClearHistory={handleClearHistory} />
-
-      {showSettings ? (
+  // ── Settings / Voice Call overlays ──
+  if (showSettings) {
+    return (
+      <div className="app-container app-container--expanded">
+        <TitleBar onOpenSettings={handleOpenSettings} onClearHistory={handleClearHistory} />
         <SettingsPanel
           settings={settings}
           models={models}
           testResult={testResult}
           isSaving={isSaving}
+          selectedCharacter={selectedCharacter}
           onSave={handleSaveSettings}
           onRefreshModels={handleRefreshModels}
           onTest={handleTestConnection}
           onClose={() => setShowSettings(false)}
         />
-      ) : isVoiceCall ? (
+      </div>
+    );
+  }
+
+  if (isVoiceCall) {
+    return (
+      <div className="app-container app-container--expanded">
         <VoiceCall
           emotion={emotion}
           isSpeaking={isSpeaking}
           onEnd={handleEndVoiceCall}
         />
-      ) : (
-        <>
-          <Avatar emotion={emotion} isSpeaking={isSpeaking} />
-          <StatusIndicator status={status} isConnected={isConnected} />
-          <ChatArea
-            messages={messages}
-            messagesEndRef={messagesEndRef}
-            isThinking={status === 'thinking'}
-          />
-          <InputArea
-            onSend={handleSendMessage}
-            onVoiceRecord={handleVoiceRecord}
-            onVoiceCall={handleStartVoiceCall}
-            isRecording={isRecording}
-            disabled={status === 'thinking' || !isConnected}
-          />
-        </>
-      )}
+      </div>
+    );
+  }
+
+  // ── Expanded mode: full chat panel ──
+  if (isExpanded) {
+    return (
+      <div className="app-container app-container--expanded">
+        <TitleBar onOpenSettings={handleOpenSettings} onClearHistory={handleClearHistory} />
+        <ChatArea
+          messages={messages}
+          messagesEndRef={messagesEndRef}
+          isThinking={status === 'thinking'}
+        />
+        <Mascot
+          character={selectedCharacter}
+          emotion={emotion}
+          isSpeaking={isSpeaking}
+          onClick={toggleExpand}
+          size="small"
+        />
+        <InputArea
+          onSend={handleSendMessage}
+          onVoiceRecord={handleVoiceRecord}
+          onVoiceCall={handleStartVoiceCall}
+          isRecording={isRecording}
+          disabled={status === 'thinking' || !isConnected}
+        />
+      </div>
+    );
+  }
+
+  // ── Compact mode: Clippy-style mascot ──
+  return (
+    <div className="app-container app-container--compact">
+      <SpeechBubble
+        message={bubbleMessage}
+        isThinking={status === 'thinking'}
+        isVisible={bubbleVisible || status === 'thinking'}
+        onDismiss={dismissBubble}
+      />
+      <Mascot
+        character={selectedCharacter}
+        emotion={emotion}
+        isSpeaking={isSpeaking}
+        onClick={toggleExpand}
+      />
+      <CompactInput
+        onSend={handleSendMessage}
+        onMicToggle={handleMicToggle}
+        disabled={status === 'thinking' || !isConnected}
+        isListening={isRecording}
+      />
     </div>
   );
 }

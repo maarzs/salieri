@@ -9,6 +9,7 @@ import {
   globalShortcut,
 } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 import { spawn, ChildProcess } from 'child_process';
 
 let mainWindow: BrowserWindow | null = null;
@@ -74,10 +75,10 @@ function createWindow(): BrowserWindow {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
   const win = new BrowserWindow({
-    width: 400,
-    height: 650,
-    x: width - 420,
-    y: height - 670,
+    width: 380,
+    height: 520,
+    x: width - 400,
+    y: height - 540,
     icon: assetPath('icon.png'),
     frame: false,
     transparent: true,
@@ -117,8 +118,15 @@ function startPythonBackend(): void {
   let args: string[];
 
   if (isDev) {
-    // Dev: run the Python source directly.
-    command = 'python';
+    // Dev: look for project virtualenv first, fall back to system python
+    const venvCandidates = [
+      path.join(__dirname, '../../backend/.venv/Scripts/python.exe'),
+      path.join(__dirname, '../../backend/venv/Scripts/python.exe'),
+      path.join(__dirname, '../../backend/.venv/bin/python'),
+      path.join(__dirname, '../../backend/venv/bin/python'),
+    ];
+    const foundVenv = venvCandidates.find((p) => fs.existsSync(p));
+    command = foundVenv || 'python';
     args = [
       path.join(__dirname, '../../backend/server.py'),
       '--port',
@@ -176,6 +184,18 @@ ipcMain.handle('minimize-window', () => {
 
 ipcMain.handle('hide-window', () => {
   mainWindow?.hide();
+});
+
+ipcMain.handle('resize-window', (_event, width: number, height: number) => {
+  if (mainWindow) {
+    const [currentX, currentY] = mainWindow.getPosition();
+    const [, currentH] = mainWindow.getSize();
+    const dy = height - currentH;
+    mainWindow.setSize(width, height);
+    // Anchor the bottom edge: grow/shrink upward so the mascot at the
+    // bottom stays put whether expanding or collapsing.
+    mainWindow.setPosition(currentX, currentY - dy);
+  }
 });
 
 // App lifecycle

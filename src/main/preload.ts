@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('salieriAPI', {
     ipcRenderer.invoke('toggle-always-on-top', onTop),
   minimizeWindow: (): Promise<void> => ipcRenderer.invoke('minimize-window'),
   hideWindow: (): Promise<void> => ipcRenderer.invoke('hide-window'),
+  resizeWindow: (width: number, height: number): Promise<void> =>
+    ipcRenderer.invoke('resize-window', width, height),
 
   // Voice call events
   onStartVoiceCall: (callback: () => void): void => {

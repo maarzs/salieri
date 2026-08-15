@@ -31,6 +31,7 @@ _FIELDS = {
     "personality_name": "SALIERI_PERSONALITY_NAME",
     "personality_style": "SALIERI_PERSONALITY_STYLE",
     "response_length": "SALIERI_RESPONSE_LENGTH",
+    "mascot_character": "SALIERI_MASCOT_CHARACTER",
 }
 
 _DEFAULTS = {
@@ -45,11 +46,13 @@ _DEFAULTS = {
     "personality_name": "",
     "personality_style": "",
     "response_length": "normal",
+    "mascot_character": "female",
 }
 
 # Fields restricted to a fixed set of values: {key: (allowed, ...)}
 _ENUM_FIELDS = {
     "response_length": ("concise", "normal", "detailed"),
+    "mascot_character": ("male", "female"),
 }
 
 # Model name used when the user hasn't picked one, per provider.

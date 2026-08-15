@@ -23,6 +23,7 @@ _ENV_KEYS = [
     "SALIERI_PERSONALITY_NAME",
     "SALIERI_PERSONALITY_STYLE",
     "SALIERI_RESPONSE_LENGTH",
+    "SALIERI_MASCOT_CHARACTER",
 ]
 
 
@@ -48,6 +49,7 @@ def test_defaults_without_file(store):
     assert store.get("tts_rate") == "+10%"
     assert store.get("response_length") == "normal"
     assert store.get("personality_name") == ""
+    assert store.get("mascot_character") == "female"
 
 
 def test_model_default_follows_provider(store):
@@ -149,6 +151,14 @@ def test_response_length_enum_validated(store):
     assert store.get("response_length") == "normal"  # invalid -> default
     store.update({"response_length": "DETAILED"})
     assert store.get("response_length") == "detailed"  # normalized
+
+
+def test_mascot_character_enum_validated(store):
+    store.update({"mascot_character": "robot"})
+    assert store.get("mascot_character") == "female"  # invalid -> default
+    store.update({"mascot_character": "MALE"})
+    assert store.get("mascot_character") == "male"  # normalized
+
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Settings, SettingsPatch } from '../types';
 
+import maleNeutral from '../assets/mascots/male/neutral.png';
+import femaleNeutral from '../assets/mascots/female/neutral.png';
+
 /** Popular Edge TTS voices offered as quick picks; the input accepts any
  *  valid Edge TTS voice name, so this list is a convenience, not a limit. */
 const VOICE_OPTIONS: { id: string; label: string }[] = [
@@ -28,6 +31,7 @@ interface SettingsPanelProps {
   onRefreshModels: () => void;
   onTest: () => void;
   onClose: () => void;
+  selectedCharacter: 'male' | 'female';
 }
 
 /**
@@ -46,6 +50,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onRefreshModels,
   onTest,
   onClose,
+  selectedCharacter,
 }) => {
   const [provider, setProvider] = useState('ollama');
   const [model, setModel] = useState('');
@@ -58,6 +63,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [personalityName, setPersonalityName] = useState('');
   const [personalityStyle, setPersonalityStyle] = useState('');
   const [responseLength, setResponseLength] = useState('normal');
+  const [character, setCharacter] = useState<'male' | 'female'>(selectedCharacter);
 
   // Hydrate the form whenever fresh settings arrive from the backend.
   useEffect(() => {
@@ -73,6 +79,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     setPersonalityStyle(settings.personality_style ?? '');
     setResponseLength(settings.response_length || 'normal');
     setApiKey('');
+    if (settings.mascot_character) setCharacter(settings.mascot_character);
   }, [settings]);
 
   const isOpenAI = provider === 'openai';
@@ -90,6 +97,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
       personality_name: personalityName.trim(),
       personality_style: personalityStyle.trim(),
       response_length: responseLength,
+      mascot_character: character,
     };
     // Only send the key when the user actually entered one.
     if (apiKey.trim()) patch.api_key = apiKey.trim();
@@ -305,6 +313,26 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               rows={3}
             />
           </label>
+        </div>
+
+        <div className="settings-section">
+          <span className="settings-section__title">CHARACTER</span>
+          <div className="character-selector">
+            <div
+              className={`character-option ${character === 'male' ? 'character-option--selected' : ''}`}
+              onClick={() => setCharacter('male')}
+            >
+              <img src={maleNeutral} alt="Male mascot" className="character-option__image" />
+              <span className="character-option__label">Male</span>
+            </div>
+            <div
+              className={`character-option ${character === 'female' ? 'character-option--selected' : ''}`}
+              onClick={() => setCharacter('female')}
+            >
+              <img src={femaleNeutral} alt="Female mascot" className="character-option__image" />
+              <span className="character-option__label">Female</span>
+            </div>
+          </div>
         </div>
 
         {testResult && (
