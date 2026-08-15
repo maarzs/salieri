@@ -30,6 +30,19 @@ html, body, #root {
   user-select: none;
 }
 
+/* Text inputs must override the global user-select: none or they can't
+   receive click/focus in Electron's frameless transparent window. */
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Prevent HTML5 native image-drag ghost (dragging the mascot image looked
+   like "copying the image" instead of moving the window). */
+img {
+  -webkit-user-drag: none;
+}
+
 /* Main container */
 .app-container {
   width: 100%;
@@ -604,6 +617,22 @@ html, body, #root {
 /* ============================================================
    MASCOT — Clippy-style desktop companion
    ============================================================ */
+/* ── Compact (Clippy) mode: drag regions so the floating mascot can be moved ── */
+.app-container--compact .mascot {
+  -webkit-app-region: drag;
+}
+
+.app-container--compact .speech-bubble {
+  -webkit-app-region: drag;
+}
+
+/* Interactive elements must opt back out or they become unclickable. */
+.app-container--compact .compact-input,
+.app-container--compact .compact-input input,
+.app-container--compact .compact-input button {
+  -webkit-app-region: no-drag;
+}
+
 .mascot {
   display: flex;
   align-items: center;

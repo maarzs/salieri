@@ -36,7 +36,7 @@ export const Mascot: React.FC<MascotProps> = ({
       onClick={onClick}
     >
       {isSpeaking && <div className="mascot__glow" />}
-      <img src={spriteSrc} alt={`${character} mascot`} className="mascot__image" />
+      <img src={spriteSrc} alt={`${character} mascot`} className="mascot__image" draggable={false} />
     </div>
   );
 };

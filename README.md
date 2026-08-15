@@ -32,6 +32,13 @@ Unlike browser-based chatbots, Salieri is **always on your desktop**: an always-
 - **🖥️ Desktop Integration** — Always-on-top, transparent window, system tray
 - **⚙️ In-App Settings Panel** — Pick the LLM provider, TTS voice, and personality without editing files
 
+### Chibi Mascot Mode (v0.2)
+- **🧍 Selectable Chibi Mascots** — Two characters: a gloomy scientist girl (default) and a silver-haired gentleman, pickable in Settings → Character
+- **📌 Clippy-Style Compact Mode** — The mascot floats transparently on your desktop with idle animations (gentle bob, breathing pulse, blinking); drag it anywhere
+- **💬 Speech Balloon** — Replies appear in a speech bubble with streaming text (or animated thinking dots), auto-hiding after 8s or on click
+- **⌨️ Hover-to-Type Input** — A slim input bar fades in near the bottom of the mascot for quick messages or mic toggle
+- **🪟 Expandable Chat Panel** — Click the mascot to expand into the full scrollable chat history + controls; click again to collapse back to the companion
+
 ### Architecture
 
 ```
@@ -116,12 +123,12 @@ npm run dev
 
 ### Running
 
-The app will appear as a floating window on your desktop. Use `Alt+Shift+S` to toggle visibility.
+The app appears as a small floating mascot on your desktop (compact mode). Use `Alt+Shift+S` to toggle visibility.
 
-- **Type** in the chat box to talk to Salieri
-- **Click 🎤** to use voice input
-- **Click 📞** to start a voice call
-- **Minimize** with the yellow button, **hide** with the X
+- **Drag the mascot** to move it anywhere on screen
+- **Hover near its bottom** to reveal the quick input bar — type or tap 🎤 for voice
+- **Click the mascot** to expand the full chat panel (history, voice call 📞, settings ⚙️); click again to collapse
+- **Replies** pop up in a speech balloon that auto-hides after 8 seconds
 
 ## Configuration
 
@@ -133,6 +140,8 @@ Open the ⚙️ gear button in the title bar. The panel covers:
 - **Voice output** — enable/disable TTS, pick an Edge TTS voice, adjust speaking rate
 - **Personality** — companion name, free-text style notes, response length
   (concise / normal / detailed)
+- **Character** — pick the chibi mascot: gloomy scientist girl (default) or
+  silver-haired gentleman; applies instantly and persists across launches
 
 Settings are persisted to `settings.json` next to the memory database, so they
 survive updates. API keys are never sent back to the UI — the panel only sees
@@ -156,6 +165,7 @@ variables (or `backend/.env`). The in-app setting always wins when present.
 | `SALIERI_PERSONALITY_NAME` | — | Override the companion's name |
 | `SALIERI_PERSONALITY_STYLE` | — | Free-text style notes for the system prompt |
 | `SALIERI_RESPONSE_LENGTH` | `normal` | `concise`, `normal`, or `detailed` |
+| `SALIERI_MASCOT_CHARACTER` | `female` | `female` or `male` chibi mascot |
 | `SALIERI_STT_MODEL` | `small` | Whisper model size |
 
 ### Character Customization

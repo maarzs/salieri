@@ -118,12 +118,15 @@ function startPythonBackend(): void {
   let args: string[];
 
   if (isDev) {
-    // Dev: look for project virtualenv first, fall back to system python
+    // Dev: look for project virtualenv first, fall back to system python.
+    // NOTE: backend/venv is the FULL env (torch, faster-whisper, pyaudio,
+    // sentence-transformers); backend/.venv is a minimal/test env that lacks
+    // them, so venv must be preferred or voice + semantic memory go missing.
     const venvCandidates = [
-      path.join(__dirname, '../../backend/.venv/Scripts/python.exe'),
       path.join(__dirname, '../../backend/venv/Scripts/python.exe'),
-      path.join(__dirname, '../../backend/.venv/bin/python'),
+      path.join(__dirname, '../../backend/.venv/Scripts/python.exe'),
       path.join(__dirname, '../../backend/venv/bin/python'),
+      path.join(__dirname, '../../backend/.venv/bin/python'),
     ];
     const foundVenv = venvCandidates.find((p) => fs.existsSync(p));
     command = foundVenv || 'python';

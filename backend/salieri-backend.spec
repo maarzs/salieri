@@ -45,6 +45,7 @@ hiddenimports += [
     "numpy",
     "soundfile",
     "pyaudio",
+    "_portaudio",
     "dotenv",
 ]
 
@@ -68,9 +69,12 @@ a = Analysis(
         "pandas", "cv2", "PIL",
         # --- onnxruntime test/benchmark/tooling bloat (faster-whisper uses ctranslate2) ---
         "onnxruntime.tools", "onnxruntime.transformers",
-        # --- torch dev/experimental/test submodules (keep core torch via its hook) ---
-        "torch.test", "torch.testing", "torch.benchmarks", "torch.fb",
-        "torch.fx.experimental", "torch.export",
+        # --- torch submodules: do NOT exclude individual pieces ---
+        # torch 2.13 wires its own submodules together at import time
+        # (torch.testing, torch.fx.experimental, torch.export, ...). Excluding
+        # any of them makes `import torch` fail inside the frozen exe, which
+        # silently disables sentence-transformers semantic memory. The size
+        # saving is not worth the fragility — keep the whole package.
         # --- cloud SDKs pulled in transitively but unused ---
         "boto3", "botocore",
         # --- test-suite bloat from scipy / scikit-learn ---

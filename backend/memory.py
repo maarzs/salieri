@@ -17,10 +17,9 @@ logger = logging.getLogger("salieri.memory")
 try:
     from sentence_transformers import SentenceTransformer
     HAS_TRANSFORMERS = True
-except ImportError:
+except ImportError as exc:
     HAS_TRANSFORMERS = False
-    logger.warning("sentence-transformers not installed, semantic search disabled")
-    logger.debug("sentence_transformers import failed", exc_info=True)
+    logger.warning("sentence-transformers unavailable, semantic search disabled: %s", exc)
 
 
 # ---------------------------------------------------------------------------
