@@ -148,6 +148,7 @@ async def test_update_settings_persists_and_applies(chat_backend):
     await chat_backend.handle_message(ws, {
         "type": "update_settings",
         "settings": {
+            "mascot_character": "male",
             "tts_voice": "en-GB-RyanNeural",
             "tts_rate": "-5%",
             "personality_name": "Mozart",
@@ -168,12 +169,37 @@ async def test_update_settings_persists_and_applies(chat_backend):
     assert on_disk["personality_name"] == "Mozart"
     assert "not_a_real_key" not in on_disk
 
-    # Applied to the engines immediately, no restart needed.
-    assert chat_backend.personality.character["name"] == "Mozart"
+    # Applied to the engines immediately, no restart needed. The selected
+    # persona owns the name and default voice; style notes remain minor flavor.
+    assert chat_backend.personality.character["name"] == "Salieri"
+    assert chat_backend.personality.character["variant"] == "male"
     assert chat_backend.personality.character["style_notes"] == "Extra dramatic."
     assert chat_backend.personality.character["response_length"] == "concise"
-    assert chat_backend.tts.voice == "en-GB-RyanNeural"
+    assert chat_backend.tts.voice == "en-US-GuyNeural"
+    assert chat_backend.tts.rate == "-10%"
+
+
+async def test_character_selector_switches_persona_and_voice_immediately(chat_backend):
+    from conftest import FakeTTS
+
+    chat_backend.tts = FakeTTS()
+    ws = _ws()
+    await chat_backend.handle_message(ws, {
+        "type": "update_settings",
+        "settings": {"mascot_character": "female"},
+    })
+    assert "sharp and prickly" in chat_backend.personality.system_prompt
+    assert chat_backend.tts.voice == "en-US-AriaNeural"
     assert chat_backend.tts.rate == "-5%"
+
+    await chat_backend.handle_message(ws, {
+        "type": "update_settings",
+        "settings": {"mascot_character": "male"},
+    })
+    assert "Machine-like" in chat_backend.personality.system_prompt
+    assert "Master" in chat_backend.personality.system_prompt
+    assert chat_backend.tts.voice == "en-US-GuyNeural"
+    assert chat_backend.tts.rate == "-10%"
 
 
 async def test_update_settings_invalid_enum_falls_back(chat_backend):

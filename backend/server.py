@@ -128,7 +128,12 @@ class SalieriBackend:
         """
         eff = self.settings.effective()
         self.personality.apply_settings(eff)
-        self.tts.set_voice(eff.get("tts_voice", ""), eff.get("tts_rate", ""))
+
+        # Character variant owns the default voice/rate — the persona
+        # determines how it sounds. TTS override from the Settings panel
+        # is only applied here when the character is NOT being switched
+        # (handled in the update_settings handler).
+        self.tts.set_voice(self.personality.default_voice, self.personality.default_rate)
 
     async def handle_message(self, websocket, data: dict):
         """Route incoming messages from the frontend."""
@@ -304,8 +309,23 @@ class SalieriBackend:
             # Respect the user's toggle, but never enable TTS when the
             # edge-tts package is missing.
             self.tts.set_enabled(self.settings.effective()["tts_enabled"])
-            # Re-apply voice + personality so changes take effect immediately.
-            self._apply_user_settings()
+            # Apply personality (character switch, style notes, etc.).
+            self.personality.apply_settings(self.settings.effective())
+            # Voice: switching character owns the voice — the persona's
+            # default wins. A manual tts_voice change (no character switch in
+            # this patch) is honored as an explicit user override.
+            if "mascot_character" in patch and patch.get("mascot_character"):
+                self.tts.set_voice(
+                    self.personality.default_voice,
+                    self.personality.default_rate,
+                )
+            elif patch.get("tts_voice"):
+                self.tts.set_voice(patch["tts_voice"], patch.get("tts_rate") or "")
+            else:
+                self.tts.set_voice(
+                    self.personality.default_voice,
+                    self.personality.default_rate,
+                )
             await self.send_json(websocket, {
                 "type": "settings",
                 "settings": public,

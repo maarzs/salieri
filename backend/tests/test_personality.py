@@ -55,16 +55,21 @@ def test_build_messages_no_memories_no_profile():
 # apply_settings / system_prompt
 # ---------------------------------------------------------------------------
 
-def test_apply_settings_overrides_name_and_style():
+def test_apply_settings_appends_style_but_persona_owns_name():
     engine = PersonalityEngine()
     engine.apply_settings({
+        "mascot_character": "female",
         "personality_name": "Mozart",
         "personality_style": "Be extra dramatic.",
         "response_length": "concise",
     })
-    assert engine.character["name"] == "Mozart"
+    # The active persona owns the name — a user-typed name never overrides it.
+    assert engine.character["name"] == "Salieri"
     prompt = engine.system_prompt
-    assert prompt.startswith("You are Mozart.")
+    assert prompt.startswith("You are Salieri.")
+    assert "Mozart" not in prompt
+    assert "sharp and prickly" in prompt
+    # User style notes still append as minor flavor.
     assert "Style notes from the user: Be extra dramatic." in prompt
     assert "one or two sentences" in prompt
 
@@ -100,6 +105,57 @@ def test_update_character_does_not_mutate_shared_default():
 
 
 # ---------------------------------------------------------------------------
+# Character selector — completely distinct personas
+# ---------------------------------------------------------------------------
+
+def test_character_selector_switches_to_distinct_personas():
+    engine = PersonalityEngine()
+
+    engine.apply_settings({"mascot_character": "female"})
+    female_prompt = engine.system_prompt
+    assert engine.character["variant"] == "female"
+    assert engine.character["name"] == "Salieri"
+    assert "sharp and prickly" in female_prompt
+    assert "hate admitting it" in female_prompt
+    assert "Master" not in female_prompt
+
+    engine.apply_settings({"mascot_character": "male"})
+    male_prompt = engine.system_prompt
+    assert engine.character["variant"] == "male"
+    assert engine.character["name"] == "Salieri"
+    assert "machine-like anti-hero" not in male_prompt
+    assert "Machine-like" in male_prompt
+    assert "Master" in male_prompt
+    assert "suppressed resentment" in male_prompt
+
+    # Completely different personalities, not a shared base with tweaks.
+    assert female_prompt != male_prompt
+
+
+def test_female_is_the_default_persona():
+    engine = PersonalityEngine()
+    assert engine.character["variant"] == "female"
+    assert "sharp and prickly" in engine.system_prompt
+
+
+def test_invalid_variant_falls_back_to_female():
+    engine = PersonalityEngine()
+    engine.apply_settings({"mascot_character": "robot"})
+    assert engine.character["variant"] == "female"
+
+
+def test_default_voice_per_character():
+    engine = PersonalityEngine()
+    engine.apply_settings({"mascot_character": "female"})
+    assert engine.default_voice == "en-US-AriaNeural"
+    assert engine.default_rate == "-5%"
+
+    engine.apply_settings({"mascot_character": "male"})
+    assert engine.default_voice == "en-US-GuyNeural"
+    assert engine.default_rate == "-10%"
+
+
+# ---------------------------------------------------------------------------
 # Emotion detection
 # ---------------------------------------------------------------------------
 
@@ -113,6 +169,17 @@ def test_detect_emotion_sad():
 
 def test_detect_emotion_neutral_fallback():
     assert PersonalityEngine().detect_emotion("The meeting is at noon.") == "neutral"
+
+
+def test_emotion_detection_is_character_specific():
+    engine = PersonalityEngine()
+    engine.apply_settings({"mascot_character": "female"})
+    assert engine.detect_emotion("That's wonderful.") == "happy"
+
+    engine.apply_settings({"mascot_character": "male"})
+    # Male Salieri suppresses overt happiness unless it is emphatic.
+    assert engine.detect_emotion("That's wonderful.") == "neutral"
+    assert engine.detect_emotion("Warning, Master. This danger is serious.") == "concerned"
 
 
 def test_get_greeting_default():

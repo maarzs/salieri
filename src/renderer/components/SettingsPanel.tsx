@@ -320,7 +320,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               spellCheck={false}
             />
             <span className="settings-field__hint">
-              Leave blank to keep the default persona
+              The selected character always stays Salieri — a custom name is ignored
             </span>
           </label>
 
@@ -367,6 +367,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <span className="character-option__label">Female</span>
             </div>
           </div>
+          <span className="settings-field__hint">
+            {character === 'female'
+              ? 'Gloomy, sharp-tongued assistant — hides concern behind criticism. Softer neural voice.'
+              : 'Machine-like anti-hero — cold, clipped, mechanical. Addresses you as Master. Low, flat neural voice.'}
+            {' '}Switching character also changes personality, voice, and emotion style.
+          </span>
         </div>
 
         <div className="settings-section">
