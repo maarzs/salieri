@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, SettingsPatch } from '../types';
+import { Settings, SettingsPatch, FeatureModule } from '../types';
 
 import maleNeutral from '../assets/mascots/male/neutral.png';
 import femaleNeutral from '../assets/mascots/female/neutral.png';
@@ -64,6 +64,40 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [personalityStyle, setPersonalityStyle] = useState('');
   const [responseLength, setResponseLength] = useState('normal');
   const [character, setCharacter] = useState<'male' | 'female'>(selectedCharacter);
+
+  // Feature modules (dynamic backend capabilities)
+  const [features, setFeatures] = useState<FeatureModule[]>([]);
+  const [installing, setInstalling] = useState<string | null>(null);
+  const [installLog, setInstallLog] = useState<string>('');
+
+  const refreshFeatures = () => {
+    window.salieriAPI?.listFeatures().then(setFeatures).catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshFeatures();
+    window.salieriAPI?.onInstallProgress((_id, message) => {
+      setInstallLog(message);
+    });
+    return () => {
+      window.salieriAPI?.removeAllListeners('install-progress');
+    };
+  }, []);
+
+  const handleInstall = async (featureId: string) => {
+    setInstalling(featureId);
+    setInstallLog('Starting install...');
+    try {
+      const result = await window.salieriAPI.installFeature(featureId);
+      setInstallLog(result.message);
+    } catch (err) {
+      setInstallLog(`Install failed: ${err}`);
+    } finally {
+      setInstalling(null);
+      // Give the backend a moment to restart, then re-probe installed state.
+      setTimeout(refreshFeatures, 3000);
+    }
+  };
 
   // Hydrate the form whenever fresh settings arrive from the backend.
   useEffect(() => {
@@ -333,6 +367,42 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <span className="character-option__label">Female</span>
             </div>
           </div>
+        </div>
+
+        <div className="settings-section">
+          <span className="settings-section__title">MODULES</span>
+          <span className="settings-field__hint">
+            Optional backend capabilities, installed on demand into the sidecar
+            Python (kept out of the installer to keep it small). Installing
+            restarts the backend.
+          </span>
+          <ul className="modules-list">
+            {features.map((f) => (
+              <li key={f.id} className="modules-list__item">
+                <div className="modules-list__info">
+                  <span className="modules-list__label">
+                    {f.label}
+                    {f.core && <span className="modules-list__badge">built-in</span>}
+                    {!f.core && f.installed && (
+                      <span className="modules-list__badge modules-list__badge--ok">installed</span>
+                    )}
+                  </span>
+                  <span className="settings-field__hint">{f.description}</span>
+                </div>
+                {!f.core && !f.installed && (
+                  <button
+                    type="button"
+                    className="settings-btn"
+                    disabled={installing !== null}
+                    onClick={() => handleInstall(f.id)}
+                  >
+                    {installing === f.id ? 'Installing...' : 'Install'}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          {installLog && <p className="modules-log">{installLog}</p>}
         </div>
 
         {testResult && (

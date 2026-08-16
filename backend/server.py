@@ -64,13 +64,21 @@ BACKEND_DIR = Path(__file__).parent
 
 
 def _data_dir() -> Path:
-    """Writable directory for persistent data (memory DB).
+    """Writable directory for persistent data (settings + memory DB).
 
-    When frozen (PyInstaller), __file__ lives in a read-only temp extraction
-    dir, so store data under the user's app-data folder instead.
+    Dev runs write next to the source. Packaged runs must NOT: the backend is
+    a sidecar under ``<installDir>/resources/backend`` — in Program Files that
+    is not user-writable (and for the portable build it's a temp dir that is
+    wiped between launches). Detect packaged mode by an embedded-Python
+    sibling (``python/python.exe`` next to the backend source) or PyInstaller's
+    ``sys.frozen``, and store data under the user's app-data folder instead.
     """
     import sys
-    if getattr(sys, "frozen", False):
+    packaged = (
+        getattr(sys, "frozen", False)  # PyInstaller bundle
+        or (BACKEND_DIR / "python" / "python.exe").exists()  # embedded sidecar
+    )
+    if packaged:
         base = Path(os.getenv("APPDATA", Path.home() / "AppData/Roaming"))
         d = base / "Salieri"
         d.mkdir(parents=True, exist_ok=True)

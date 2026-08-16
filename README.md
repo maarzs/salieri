@@ -80,12 +80,18 @@ Unlike browser-based chatbots, Salieri is **always on your desktop**: an always-
 
 ## Download (Windows)
 
-Pre-built releases are on the [GitHub Releases page](https://github.com/maarzs/salieri/releases) — grab the latest `.exe` and run it. Each release bundles the app **plus the fully-frozen AI backend** (faster-whisper STT, Edge TTS, SQLite memory): no Python, no Node.js, no manual dependencies.
+Pre-built releases are on the [GitHub Releases page](https://github.com/maarzs/salieri/releases) — grab the latest `.exe` and run it. The release is **modular, not one big static bundle**: the Electron shell installs as a normal program, and the Python backend ships as a **sidecar folder** of loose files under `resources/backend/` — an embedded CPython runtime plus the backend source and its core dependencies, never baked into the exe or the asar.
+
+That means:
+
+- **The backend is independently updatable** — replace the `resources/backend/` folder (or any `.py` file in it) without rebuilding or reinstalling the app.
+- **Heavy AI modules install on demand** — local speech-to-text (faster-whisper) and semantic memory (sentence-transformers/torch, ~2 GB) are *not* in the installer. Enable them from **Settings → Modules**; the app pip-installs them into the sidecar Python and restarts the backend. Chat + cloud LLM + Edge TTS work out of the box without them.
+- **The shell and backend upgrade separately** — a small app update doesn't re-download the Python runtime, and a backend fix doesn't touch the app.
 
 | Asset | What it is |
 |-------|------------|
-| `Salieri.AI-<version>-x64-setup.exe` | NSIS installer — installs the app, Start Menu shortcut, update support |
-| `Salieri.AI-<version>-x64-portable.exe` | Portable single exe — no install, runs from anywhere (self-extracts on first launch, takes a few seconds) |
+| `Salieri.AI-<version>-x64-setup.exe` | NSIS installer — installs the app + backend sidecar, Start Menu shortcut, update support |
+| `Salieri.AI-<version>-x64-portable.exe` | Portable single exe — self-extracts the app **and** the sidecar to a temp dir on each launch; no install, runs from anywhere |
 
 > [!NOTE]
 > Local LLM inference still needs **Ollama** ([install](https://ollama.com), then `ollama pull llama3.2:3b`). Alternatively, plug any OpenAI-compatible API key into the in-app Settings panel and skip local models entirely.

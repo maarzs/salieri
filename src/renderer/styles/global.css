@@ -230,6 +230,65 @@ img {
   color: var(--text-muted);
 }
 
+/* Feature modules list (Settings → MODULES) */
+.modules-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modules-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.modules-list__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.modules-list__label {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modules-list__badge {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.modules-list__badge--ok {
+  color: #7ee787;
+  border-color: #2ea04355;
+}
+
+.modules-log {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 0;
+  word-break: break-all;
+  max-height: 48px;
+  overflow: hidden;
+}
+
 .settings-field__refresh {
   background: transparent;
   border: none;

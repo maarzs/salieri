@@ -4,7 +4,7 @@ directories:
   output: release
   buildResources: assets
 
-# Files that make up the Electron app itself.
+# Files that make up the Electron app itself (the shell only).
 files:
   - dist/main/**
   - dist/renderer/**
@@ -12,12 +12,24 @@ files:
   - package.json
 
 # Extra files copied into the app's resources folder (process.resourcesPath).
-# The frozen backend exe is spawned from here by main.ts.
+# The backend is a SIDECAR: an embedded Python distribution + live source
+# files kept as LOOSE FILES under resources/backend/ — never packed into the
+# exe or the asar. This keeps the backend independently updatable: replace
+# the folder (or pip-install extra modules into its site-packages) without
+# rebuilding or reinstalling the app.
 extraResources:
-  # The frozen backend is a onedir bundle: copy the whole folder so the exe
-  # sits at resourcesPath/backend/salieri-backend.exe with its DLLs alongside.
-  - from: backend/dist/salieri-backend
+  # Embedded Python runtime + CORE pip dependencies + backend source.
+  # Produced by: python backend/scripts/setup_embedded_python.py
+  # Heavy optional modules (faster-whisper, torch, sentence-transformers)
+  # are NOT included — they're installed on demand from the app's
+  # Settings → Modules panel.
+  - from: backend/dist
     to: backend
+    filter:
+      - "**/*"
+      - "!**/__pycache__/**"
+      - "!**/*.pyc"
+      - "!**/.git/**"
   # NOTE: backend/.env is intentionally NOT bundled here. It may contain a
   # live API key and would be shipped to every user of the installer. Keys
   # belong in the in-app Settings panel (persisted to %APPDATA%\Salieri).
@@ -25,10 +37,11 @@ extraResources:
 win:
   target:
     - nsis
+    # Portable single-exe: self-extracts app + sidecar to a temp dir and
+    # runs it. Because the backend is a sidecar folder (not baked in), this
+    # works with the embedded-Python layout unchanged.
     - portable
 
-# nsis and portable both emit .exe, so each target needs its own artifactName
-# or the second build silently overwrites the first.
 nsis:
   artifactName: ${productName}-${version}-${arch}-setup.${ext}
   oneClick: false
@@ -40,5 +53,6 @@ nsis:
 portable:
   artifactName: ${productName}-${version}-${arch}-portable.${ext}
 
-# Don't compress the already-large backend exe inside asar; keep startup sane.
+# Don't compress the backend's Python runtime inside asar; keep startup sane.
+# (The backend isn't in the asar at all — it ships via extraResources above.)
 asar: true

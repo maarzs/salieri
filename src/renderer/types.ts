@@ -42,6 +42,16 @@ export interface HistoryEntry {
   timestamp: number;
 }
 
+/** One installable backend capability, as reported by the main process. */
+export interface FeatureModule {
+  id: string;
+  label: string;
+  description: string;
+  packages: string[];
+  core?: boolean;
+  installed: boolean;
+}
+
 /** LLM configuration as returned by the backend. The API key is never sent
  *  back to the renderer — only whether one is set, plus a last-4 hint. */
 export interface Settings {

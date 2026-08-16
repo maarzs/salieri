@@ -1,6 +1,6 @@
 {
   "name": "salieri-ai",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Salieri AI - Desktop AI Companion inspired by Steins;Gate's Amadeus system",
   "main": "dist/main/main.js",
   "scripts": {
@@ -13,9 +13,13 @@
     "start": "electron .",
     "backend:install": "cd backend && pip install -r requirements.txt",
     "backend:start": "cd backend && python server.py",
-    "backend:freeze": "cd backend && pyinstaller --clean --noconfirm salieri-backend.spec",
-    "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win"
+    "backend:embed": "python backend/scripts/setup_embedded_python.py",
+    "backend:extras": "python backend/scripts/install_optional_deps.py",
+    "dist": "npm run build && npm run backend:embed && electron-builder",
+    "dist:win": "npm run build && npm run backend:embed && electron-builder --win",
+    "dist:nsis": "npm run build && npm run backend:embed && electron-builder --win nsis",
+    "dist:portable": "npm run build && npm run backend:embed && electron-builder --win portable",
+    "dist:dir": "npm run build && npm run backend:embed && electron-builder --dir"
   },
   "dependencies": {
     "react": "^18.3.1",
