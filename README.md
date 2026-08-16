@@ -80,18 +80,19 @@ Unlike browser-based chatbots, Salieri is **always on your desktop**: an always-
 
 ## Download (Windows)
 
-Pre-built releases are on the [GitHub Releases page](https://github.com/maarzs/salieri/releases) — grab the latest `.exe` and run it. The release is **modular, not one big static bundle**: the Electron shell installs as a normal program, and the Python backend ships as a **sidecar folder** of loose files under `resources/backend/` — an embedded CPython runtime plus the backend source and its core dependencies, never baked into the exe or the asar.
+Pre-built releases are on the [GitHub Releases page](https://github.com/maarzs/salieri/releases) — grab the latest `.zip`. The release is a **plain extract-and-run zip**, not an installer: **extract it anywhere, open the folder, and double-click `Salieri AI.exe`.** No setup wizard, no per-launch self-extraction — so startup is fast and you can run it from any folder (or a USB drive).
+
+The release is **modular, not one big static bundle**: inside the extracted folder, the Electron shell sits next to a **backend sidecar** at `resources/backend/` — an embedded CPython runtime plus the backend source and its core dependencies, as loose files (never baked into the exe or the asar).
 
 That means:
 
-- **The backend is independently updatable** — replace the `resources/backend/` folder (or any `.py` file in it) without rebuilding or reinstalling the app.
-- **Heavy AI modules install on demand** — local speech-to-text (faster-whisper) and semantic memory (sentence-transformers/torch, ~2 GB) are *not* in the installer. Enable them from **Settings → Modules**; the app pip-installs them into the sidecar Python and restarts the backend. Chat + cloud LLM + Edge TTS work out of the box without them.
-- **The shell and backend upgrade separately** — a small app update doesn't re-download the Python runtime, and a backend fix doesn't touch the app.
+- **The backend is independently updatable** — replace the `resources/backend/` folder (or any `.py` file in it) without touching the app.
+- **Heavy AI modules install on demand** — local speech-to-text (faster-whisper) and semantic memory (sentence-transformers/torch, ~2 GB) are *not* in the zip. Enable them from **Settings → Modules**; the app pip-installs them and restarts the backend. Chat + cloud LLM + Edge TTS work out of the box without them.
+- **Your data is separate from the app** — settings, memory, and installed modules live in `%APPDATA%\Salieri`, so you can delete/replace the app folder without losing anything.
 
 | Asset | What it is |
 |-------|------------|
-| `Salieri.AI-<version>-x64-setup.exe` | NSIS installer — installs the app + backend sidecar, Start Menu shortcut, update support |
-| `Salieri.AI-<version>-x64-portable.exe` | Portable single exe — self-extracts the app **and** the sidecar to a temp dir on each launch; no install, runs from anywhere |
+| `Salieri.AI-<version>-x64.zip` | Extract-and-run folder — unzip anywhere, launch `Salieri AI.exe`. No installer. |
 
 > [!NOTE]
 > Local LLM inference still needs **Ollama** ([install](https://ollama.com), then `ollama pull llama3.2:3b`). Alternatively, plug any OpenAI-compatible API key into the in-app Settings panel and skip local models entirely.

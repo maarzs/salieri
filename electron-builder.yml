@@ -36,22 +36,10 @@ extraResources:
 
 win:
   target:
-    - nsis
-    # Portable single-exe: self-extracts app + sidecar to a temp dir and
-    # runs it. Because the backend is a sidecar folder (not baked in), this
-    # works with the embedded-Python layout unchanged.
-    - portable
-
-nsis:
-  artifactName: ${productName}-${version}-${arch}-setup.${ext}
-  oneClick: false
-  allowToChangeInstallationDirectory: true
-  createDesktopShortcut: true
-  createStartMenuShortcut: true
-  shortcutName: Salieri AI
-
-portable:
-  artifactName: ${productName}-${version}-${arch}-portable.${ext}
+    # Plain zip of the win-unpacked folder: user extracts it anywhere and runs
+    # "Salieri AI.exe" directly from that folder. No installer, no per-launch
+    # self-extraction (unlike the portable target), so launch is fast.
+    - zip
 
 # Don't compress the backend's Python runtime inside asar; keep startup sane.
 # (The backend isn't in the asar at all — it ships via extraResources above.)

@@ -17,8 +17,7 @@
     "backend:extras": "python backend/scripts/install_optional_deps.py",
     "dist": "npm run build && npm run backend:embed && electron-builder",
     "dist:win": "npm run build && npm run backend:embed && electron-builder --win",
-    "dist:nsis": "npm run build && npm run backend:embed && electron-builder --win nsis",
-    "dist:portable": "npm run build && npm run backend:embed && electron-builder --win portable",
+    "dist:zip": "npm run build && npm run backend:embed && electron-builder --win zip",
     "dist:dir": "npm run build && npm run backend:embed && electron-builder --dir"
   },
   "dependencies": {

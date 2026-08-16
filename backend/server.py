@@ -89,6 +89,16 @@ def _data_dir() -> Path:
 
 DATA_DIR = _data_dir()
 
+# Runtime-installed modules (Settings -> Modules) are pip-installed with
+# --target into this directory (NOT the sidecar's site-packages), because the
+# zip/portable release folder may be read-only. Prepending it to sys.path lets
+# the backend import them. Must happen before llm/memory/tts/stt are imported.
+MODULES_DIR = DATA_DIR / "py_modules"
+MODULES_DIR.mkdir(parents=True, exist_ok=True)
+import sys as _sys
+if str(MODULES_DIR) not in _sys.path:
+    _sys.path.insert(0, str(MODULES_DIR))
+
 # Shared across connections: a new SalieriBackend is constructed per WebSocket
 # client, so the settings store must live at module scope to stay consistent.
 SETTINGS = SettingsStore(DATA_DIR / "settings.json")

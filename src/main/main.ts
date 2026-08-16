@@ -168,6 +168,14 @@ function backendPythonExe(): string | null {
   return r ? r.command : null;
 }
 
+/** Writable dir for runtime-installed modules (settings + DB live alongside).
+ *  Kept out of the sidecar folder because the zip release dir may be
+ *  read-only. Mirrors server.py's MODULES_DIR (%APPDATA%/Salieri/py_modules). */
+function modulesDir(): string {
+  const base = process.env.APPDATA || path.join(app.getPath('home'), 'AppData', 'Roaming');
+  return path.join(base, 'Salieri', 'py_modules');
+}
+
 // ---------------------------------------------------------------------------
 // Feature module registry — the modular part of the app.
 // Each feature maps to pip packages installed on demand into the sidecar's
@@ -224,7 +232,10 @@ function checkFeaturesInstalled(pythonExe: string): Promise<Record<string, boole
         'import importlib.util,sys;' +
         `mods=${JSON.stringify(mods.split(','))};` +
         'sys.exit(0 if all(importlib.util.find_spec(m) for m in mods) else 1)';
-      const probe = spawn(pythonExe, ['-c', code], { stdio: 'ignore' });
+      const probe = spawn(pythonExe, ['-c', code], {
+        stdio: 'ignore',
+        env: { ...process.env, PYTHONPATH: modulesDir() },
+      });
       probe.on('close', (exitCode) => {
         result[featureId] = exitCode === 0;
         if (--pending === 0) resolve(result);
@@ -334,9 +345,11 @@ ipcMain.handle('install-feature', (event, featureId: string): Promise<{ ok: bool
     };
     sendProgress(`Installing ${feature.label}: pip install ${feature.packages.join(' ')}`);
 
+    const target = modulesDir();
+    fs.mkdirSync(target, { recursive: true });
     const installer = spawn(
       pythonExe,
-      ['-m', 'pip', 'install', '--no-input', ...feature.packages],
+      ['-m', 'pip', 'install', '--no-input', '--target', target, ...feature.packages],
       { stdio: ['ignore', 'pipe', 'pipe'] }
     );
 
