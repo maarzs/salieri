@@ -1,6 +1,6 @@
 {
   "name": "salieri-ai",
-  "version": "0.2.2",
+  "version": "0.2.2-1",
   "description": "Salieri AI - Desktop AI Companion inspired by Steins;Gate's Amadeus system",
   "main": "dist/main/main.js",
   "scripts": {
