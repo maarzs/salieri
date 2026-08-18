@@ -3,6 +3,7 @@ import React, { useState, KeyboardEvent } from 'react';
 interface CompactInputProps {
   onSend: (text: string) => void;
   onMicToggle: (active: boolean) => void;
+  onOpenSettings: () => void;
   disabled: boolean;
   isListening: boolean;
 }
@@ -10,6 +11,7 @@ interface CompactInputProps {
 export const CompactInput: React.FC<CompactInputProps> = ({
   onSend,
   onMicToggle,
+  onOpenSettings,
   disabled,
   isListening
 }) => {
@@ -56,6 +58,14 @@ export const CompactInput: React.FC<CompactInputProps> = ({
           disabled={disabled || !input.trim()}
         >
           ▶
+        </button>
+        <button
+          className="compact-input__btn compact-input__btn--settings"
+          onClick={onOpenSettings}
+          title="Settings"
+          aria-label="Open settings"
+        >
+          ⚙
         </button>
       </div>
     </div>

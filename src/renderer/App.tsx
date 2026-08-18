@@ -339,6 +339,8 @@ export default function App() {
   const handleOpenSettings = useCallback(() => {
     setShowSettings(true);
     setTestResult(null);
+    // Ensure the window is tall enough for the settings form
+    window.salieriAPI?.resizeWindow(EXPANDED_SIZE.width, EXPANDED_SIZE.height);
     sendMessage({ type: 'list_models' });
   }, [sendMessage]);
 
@@ -366,7 +368,12 @@ export default function App() {
           onSave={handleSaveSettings}
           onRefreshModels={handleRefreshModels}
           onTest={handleTestConnection}
-          onClose={() => setShowSettings(false)}
+          onClose={() => {
+            setShowSettings(false);
+            if (!isExpanded) {
+              window.salieriAPI?.resizeWindow(COMPACT_SIZE.width, COMPACT_SIZE.height);
+            }
+          }}
         />
       </div>
     );
@@ -430,6 +437,7 @@ export default function App() {
       <CompactInput
         onSend={handleSendMessage}
         onMicToggle={handleMicToggle}
+        onOpenSettings={handleOpenSettings}
         disabled={status === 'thinking' || !isConnected}
         isListening={isRecording}
       />
