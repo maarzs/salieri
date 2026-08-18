@@ -94,8 +94,9 @@ function createWindow(): BrowserWindow {
     },
   });
 
-  // Click-through when not interacting with the window
-  win.setIgnoreMouseEvents(false);
+  // Compact mode starts click-through: transparent pixels let clicks pass to
+  // the desktop; the renderer disables it while hovering interactive elements.
+  win.setIgnoreMouseEvents(true, { forward: true });
 
   if (isDev) {
     win.loadURL('http://localhost:5173');
@@ -407,6 +408,18 @@ ipcMain.handle('resize-window', (_event, width: number, height: number) => {
     // Anchor the bottom edge: grow/shrink upward so the mascot at the
     // bottom stays put whether expanding or collapsing.
     mainWindow.setPosition(currentX, currentY - dy);
+  }
+});
+
+// Click-through: compact mode lets clicks pass through the transparent parts
+// of the window; the renderer toggles this off while hovering interactive
+// elements. `forward` keeps mousemove reaching the renderer on Windows so it
+// can detect when the pointer re-enters an interactive zone.
+ipcMain.handle('set-click-through', (_event, enabled: boolean) => {
+  if (process.platform === 'win32') {
+    mainWindow?.setIgnoreMouseEvents(enabled, { forward: true });
+  } else {
+    mainWindow?.setIgnoreMouseEvents(enabled);
   }
 });
 

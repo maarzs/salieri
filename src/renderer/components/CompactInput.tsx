@@ -4,6 +4,7 @@ interface CompactInputProps {
   onSend: (text: string) => void;
   onMicToggle: (active: boolean) => void;
   onOpenSettings: () => void;
+  onToggleChat: () => void;
   disabled: boolean;
   isListening: boolean;
 }
@@ -12,6 +13,7 @@ export const CompactInput: React.FC<CompactInputProps> = ({
   onSend,
   onMicToggle,
   onOpenSettings,
+  onToggleChat,
   disabled,
   isListening
 }) => {
@@ -66,6 +68,14 @@ export const CompactInput: React.FC<CompactInputProps> = ({
           aria-label="Open settings"
         >
           ⚙
+        </button>
+        <button
+          className="compact-input__btn compact-input__btn--chat"
+          onClick={onToggleChat}
+          title="Chat history"
+          aria-label="Open chat history"
+        >
+          💬
         </button>
       </div>
     </div>

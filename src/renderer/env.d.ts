@@ -20,6 +20,7 @@ interface SalieriAPI {
   minimizeWindow: () => Promise<void>;
   hideWindow: () => Promise<void>;
   resizeWindow: (width: number, height: number) => Promise<void>;
+  setClickThrough: (enabled: boolean) => Promise<void>;
   listFeatures: () => Promise<FeatureModule[]>;
   installFeature: (featureId: string) => Promise<{ ok: boolean; message: string }>;
   restartBackend: () => Promise<void>;

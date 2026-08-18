@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('salieriAPI', {
   hideWindow: (): Promise<void> => ipcRenderer.invoke('hide-window'),
   resizeWindow: (width: number, height: number): Promise<void> =>
     ipcRenderer.invoke('resize-window', width, height),
+  setClickThrough: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('set-click-through', enabled),
 
   // Feature modules (dynamic backend capabilities)
   listFeatures: (): Promise<FeatureModule[]> => ipcRenderer.invoke('list-features'),

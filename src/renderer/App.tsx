@@ -238,6 +238,45 @@ export default function App() {
     });
   }, [dismissBubble]);
 
+  // Click-through: compact mode ignores mouse on transparent pixels. Re-enable
+  // capture while the pointer is over an interactive element so clicks land.
+  // Full panels (settings/chat/voice call) always capture — never pass through.
+  useEffect(() => {
+    if (isExpanded || showSettings || isVoiceCall) {
+      window.salieriAPI?.setClickThrough(false);
+      return;
+    }
+    const INTERACTIVE = 'input, button, textarea, select, .mascot, .compact-input, .speech-bubble--visible';
+    let capturing = false;
+    const setCapture = (on: boolean) => {
+      if (on === capturing) return;
+      capturing = on;
+      window.salieriAPI?.setClickThrough(!on);
+    };
+    const onOver = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      setCapture(!!t?.closest?.(INTERACTIVE));
+    };
+    // While click-through is ON, Electron forwards motion as `mousemove` only
+    // (no mouseover) — use it to detect entering an interactive element.
+    const onMove = (e: MouseEvent) => {
+      if (capturing) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest?.(INTERACTIVE)) setCapture(true);
+    };
+    // Pointer left the window entirely -> back to pass-through
+    const onLeave = () => setCapture(false);
+    document.addEventListener('mouseover', onOver, true);
+    document.addEventListener('mousemove', onMove, true);
+    document.documentElement.addEventListener('mouseleave', onLeave);
+    return () => {
+      document.removeEventListener('mouseover', onOver, true);
+      document.removeEventListener('mousemove', onMove, true);
+      document.documentElement.removeEventListener('mouseleave', onLeave);
+      setCapture(false);
+    };
+  }, [isExpanded, showSettings, isVoiceCall]);
+
   // Pull config on connect
   useEffect(() => {
     if (isConnected) {
@@ -266,6 +305,19 @@ export default function App() {
     return () => {
       if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
     };
+  }, []);
+
+  // Debug overlay: Ctrl+Shift+D outlines the real (invisible) window bounds
+  const [debugBounds, setDebugBounds] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        e.preventDefault();
+        setDebugBounds((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   const handleSendMessage = useCallback(
@@ -422,6 +474,13 @@ export default function App() {
   // ── Compact mode: Clippy-style mascot ──
   return (
     <div className="app-container app-container--compact">
+      {debugBounds && (
+        <div className="debug-bounds">
+          <span>
+            window {window.innerWidth}×{window.innerHeight}
+          </span>
+        </div>
+      )}
       <SpeechBubble
         message={bubbleMessage}
         isThinking={status === 'thinking'}
@@ -438,6 +497,7 @@ export default function App() {
         onSend={handleSendMessage}
         onMicToggle={handleMicToggle}
         onOpenSettings={handleOpenSettings}
+        onToggleChat={toggleExpand}
         disabled={status === 'thinking' || !isConnected}
         isListening={isRecording}
       />

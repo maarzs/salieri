@@ -999,6 +999,25 @@ img {
   padding: 16px;
 }
 
+/* Debug overlay (Ctrl+Shift+D): outline the invisible window bounds */
+.debug-bounds {
+  position: fixed;
+  inset: 0;
+  border: 2px dashed #ff4d4d;
+  pointer-events: none;
+  z-index: 9999;
+}
+.debug-bounds span {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 11px;
+  color: #ff4d4d;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 /* Expanded: glassmorphism panel with chat */
 .app-container--expanded {
   background: var(--bg-primary);
