@@ -240,18 +240,36 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             className="settings-field__input"
             type="text"
             value={model}
-            list="salieri-model-list"
             placeholder={settings.model_defaults?.[provider] ?? 'model name'}
             onChange={(e) => setModel(e.target.value)}
             spellCheck={false}
           />
-          <datalist id="salieri-model-list">
-            {models.map((m) => (
-              <option key={m} value={m} />
-            ))}
-          </datalist>
           {models.length > 0 && (
-            <span className="settings-field__hint">{models.length} models available</span>
+            <select
+              className="settings-field__input"
+              value={model && models.includes(model) ? model : ''}
+              onChange={(e) => setModel(e.target.value)}
+              size={Math.min(models.length, 6)}
+              aria-label="Available models"
+            >
+              {!model || !models.includes(model) ? (
+                <option value="">— typed model kept: {model || 'none'} —</option>
+              ) : null}
+              {models.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          )}
+          {models.length > 0 ? (
+            <span className="settings-field__hint">
+              {models.length} models — click one to select it, or type above
+            </span>
+          ) : (
+            <span className="settings-field__hint">
+              Save settings first, then hit refresh to browse models
+            </span>
           )}
         </label>
 
