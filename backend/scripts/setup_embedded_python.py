@@ -126,11 +126,10 @@ def setup_embedded_python(args):
     else:
         print(f"Warning: {requirements_txt} not found. Skipping dependency installation.")
         
-    # Copy backend source files
-    files_to_copy = [
-        "server.py", "llm.py", "memory.py", "personality.py", "settings.py", 
-        "tts.py", "stt.py", "requirements.txt", "requirements-optional.txt"
-    ]
+    # Copy backend source files — all top-level modules, so new files
+    # (e.g. tools/) ship without editing this list.
+    files_to_copy = [p.name for p in backend_dir.glob("*.py")]
+    files_to_copy += ["requirements.txt", "requirements-optional.txt"]
     
     print(f"Copying source files to {dist_dir}...")
     for file_name in files_to_copy:
@@ -141,6 +140,16 @@ def setup_embedded_python(args):
             shutil.copy2(src, dst)
         else:
             print(f"Warning: Source file {file_name} not found in {backend_dir}")
+
+    # Copy local packages (subdirectories with .py modules).
+    for dir_name in ["tools"]:
+        src = backend_dir / dir_name
+        dst = dist_dir / dir_name
+        if src.exists():
+            print(f"Copying {dir_name}/...")
+            shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__"), dirs_exist_ok=True)
+        else:
+            print(f"Warning: Package directory {dir_name} not found in {backend_dir}")
             
     print("Embedded Python setup complete!")
 
