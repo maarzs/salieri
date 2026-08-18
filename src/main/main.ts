@@ -168,12 +168,14 @@ function backendPythonExe(): string | null {
   return r ? r.command : null;
 }
 
-/** Writable dir for runtime-installed modules (settings + DB live alongside).
- *  Kept out of the sidecar folder because the zip release dir may be
- *  read-only. Mirrors server.py's MODULES_DIR (%APPDATA%/Salieri/py_modules). */
+/** Writable dir for runtime-installed modules.
+ *  Stored inside the app folder (next to the backend) so the whole app is
+ *  self-contained — user preference over %APPDATA%. */
 function modulesDir(): string {
-  const base = process.env.APPDATA || path.join(app.getPath('home'), 'AppData', 'Roaming');
-  return path.join(base, 'Salieri', 'py_modules');
+  if (isDev) {
+    return path.join(__dirname, '../../backend/py_modules');
+  }
+  return path.join(process.resourcesPath, 'backend', 'py_modules');
 }
 
 // ---------------------------------------------------------------------------

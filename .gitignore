@@ -9,6 +9,7 @@ __pycache__/
 *.pyo
 backend/memory/*.db
 backend/venv/
+backend/py_modules/
 .venv/
 
 # IDE

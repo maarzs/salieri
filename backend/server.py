@@ -93,10 +93,10 @@ def _data_dir() -> Path:
 DATA_DIR = _data_dir()
 
 # Runtime-installed modules (Settings -> Modules) are pip-installed with
-# --target into this directory (NOT the sidecar's site-packages), because the
-# zip/portable release folder may be read-only. Prepending it to sys.path lets
-# the backend import them. Must happen before llm/memory/tts/stt are imported.
-MODULES_DIR = DATA_DIR / "py_modules"
+# --target into a folder next to the backend source (NOT the embedded
+# site-packages), so the app stays self-contained. Prepending it to sys.path
+# lets the backend import them. Must happen before llm/memory/tts/stt imports.
+MODULES_DIR = BACKEND_DIR / "py_modules"
 MODULES_DIR.mkdir(parents=True, exist_ok=True)
 import sys as _sys
 if str(MODULES_DIR) not in _sys.path:
