@@ -186,6 +186,21 @@ export default function App() {
         case 'test_result':
           setTestResult({ ok: !!data.ok, message: data.message ?? '' });
           break;
+
+        case 'reminder_fired': {
+          const msg = `⏰ Reminder: ${data.reminder?.message ?? 'Time!'}`;
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: 'system',
+              content: msg,
+              timestamp: Date.now(),
+            },
+          ]);
+          showBubble(msg);
+          break;
+        }
       }
     },
     onConnect: () => setStatus('idle'),

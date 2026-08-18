@@ -32,6 +32,7 @@ export interface WSMessage {
   history?: HistoryEntry[];
   removed?: number;
   limit?: number;
+  reminder?: { id: number; message: string; time: number };
 }
 
 /** One persisted exchange, as returned by the `load_history` endpoint. */

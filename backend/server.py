@@ -20,6 +20,7 @@ import uuid
 import logging
 import os
 import multiprocessing
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -56,6 +57,8 @@ from personality import PersonalityEngine
 from settings import SettingsStore
 from tts import TTSEngine
 from stt import STTEngine
+
+from tools.reminders import ReminderStore, parse_time, parse_reminder_intent, reminder_scheduler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("salieri-backend")
@@ -111,10 +114,13 @@ class SalieriBackend:
         self.settings = SETTINGS
         self.llm = LLMEngine(self.settings.effective())
         self.memory = MemoryStore(DATA_DIR / "memory" / "salieri.db")
+        self.reminders = ReminderStore(DATA_DIR / "memory" / "salieri.db")
         self.personality = PersonalityEngine()
         self.tts = TTSEngine()
         self.stt = STTEngine()
         self.active_voice_call = False
+        self.websocket = None
+        self._scheduler_task = None
         # Apply the persisted voice/personality settings from the last session
         # so the first chat already reflects what the user configured.
         self._apply_user_settings()
@@ -168,6 +174,15 @@ class SalieriBackend:
         elif msg_type == "clear_history":
             await self.handle_clear_history(websocket)
 
+        elif msg_type == "set_reminder":
+            await self.handle_set_reminder(websocket, data)
+
+        elif msg_type == "list_reminders":
+            await self.handle_list_reminders(websocket)
+
+        elif msg_type == "cancel_reminder":
+            await self.handle_cancel_reminder(websocket, data.get("query", ""))
+
         elif msg_type == "update_settings":
             await self.handle_update_settings(websocket, data.get("settings", {}))
 
@@ -189,6 +204,27 @@ class SalieriBackend:
     async def handle_chat(self, websocket, content: str):
         """Process a chat message through the full pipeline."""
         try:
+            # Check for reminder intent before the full LLM pipeline
+            reminder_intent = parse_reminder_intent(content)
+            if reminder_intent:
+                fire_at = parse_time(reminder_intent["fire_at"])
+                reminder_id = self.reminders.add_reminder(
+                    reminder_intent["message"], fire_at, reminder_intent.get("recurring")
+                )
+                await self.send_json(websocket, {
+                    "type": "reminder_set",
+                    "id": reminder_id,
+                    "message": reminder_intent["message"],
+                    "fire_at": fire_at,
+                    "recurring": reminder_intent.get("recurring"),
+                })
+                await self.send_json(websocket, {
+                    "type": "chat_response",
+                    "content": f"I've set a reminder: '{reminder_intent['message']}' at {reminder_intent['fire_at']}.",
+                    "emotion": "neutral",
+                })
+                return
+
             # Extract personal facts (name, age, occupation, ...) from the
             # user's message and persist them. Runs on a worker thread so a
             # slow/blocked DB never stalls the websocket loop. Extract BEFORE
@@ -294,6 +330,73 @@ class SalieriBackend:
             await self.send_json(websocket, {
                 "type": "error",
                 "message": f"Failed to clear history: {str(e)}",
+            })
+
+    async def handle_set_reminder(self, websocket, data: dict):
+        """Create a new reminder."""
+        message = data.get("message", "")
+        fire_at_str = data.get("fire_at", "")
+        recurring = data.get("recurring")
+
+        try:
+            fire_at = parse_time(fire_at_str)
+            if fire_at is None:
+                await self.send_json(websocket, {
+                    "type": "error",
+                    "message": "Could not parse time. Use formats like 'in 5 minutes', 'at 18:00', 'tomorrow at 19:00', or ISO format.",
+                })
+                return
+
+            reminder_id = self.reminders.add_reminder(message, fire_at, recurring)
+            await self.send_json(websocket, {
+                "type": "reminder_set",
+                "id": reminder_id,
+                "message": message,
+                "fire_at": fire_at,
+                "recurring": recurring,
+            })
+            logger.info(f"Reminder set: {message} at {fire_at}")
+        except Exception as e:
+            logger.error(f"Failed to set reminder: {e}")
+            await self.send_json(websocket, {
+                "type": "error",
+                "message": f"Failed to set reminder: {str(e)}",
+            })
+
+    async def handle_list_reminders(self, websocket):
+        """List all pending reminders."""
+        try:
+            reminders = self.reminders.list_reminders()
+            await self.send_json(websocket, {
+                "type": "reminders_list",
+                "reminders": reminders,
+            })
+        except Exception as e:
+            logger.error(f"Failed to list reminders: {e}")
+            await self.send_json(websocket, {
+                "type": "error",
+                "message": f"Failed to list reminders: {str(e)}",
+            })
+
+    async def handle_cancel_reminder(self, websocket, query: str):
+        """Cancel a reminder by id or message."""
+        try:
+            removed = self.reminders.cancel_reminder(query)
+            if removed == 0:
+                await self.send_json(websocket, {
+                    "type": "error",
+                    "message": "No reminder found matching query.",
+                })
+            else:
+                await self.send_json(websocket, {
+                    "type": "reminder_cancelled",
+                    "removed": removed,
+                })
+        except Exception as e:
+            logger.error(f"Failed to cancel reminder: {e}")
+            await self.send_json(websocket, {
+                "type": "error",
+                "message": f"Failed to cancel reminder: {str(e)}",
             })
 
     async def handle_update_settings(self, websocket, patch: dict):
@@ -405,10 +508,43 @@ class SalieriBackend:
             pass
 
 
+async def _fire_reminder(backend: "SalieriBackend", reminder: dict):
+    """Callback invoked when a reminder is due: broadcast to websocket and trigger TTS."""
+    reminder_obj = {
+        "id": reminder["id"],
+        "message": reminder["message"],
+        "time": reminder["fire_at"],
+        "fired_at": int(datetime.now().timestamp()),
+    }
+    if backend.websocket:
+        await backend.send_json(backend.websocket, {
+            "type": "reminder_fired",
+            "reminder": reminder_obj,
+        })
+        try:
+            audio_base64 = await asyncio.wait_for(
+                backend.tts.generate(reminder["message"]), timeout=30
+            )
+            if audio_base64:
+                await backend.send_json(backend.websocket, {
+                    "type": "tts_audio",
+                    "audio": audio_base64,
+                })
+        except asyncio.TimeoutError:
+            pass
+        finally:
+            await backend.send_json(backend.websocket, {"type": "tts_done"})
+
+
 async def handler(websocket):
     """Handle a new WebSocket connection."""
     backend = SalieriBackend()
+    backend.websocket = websocket
     logger.info("Client connected")
+
+    backend._scheduler_task = asyncio.create_task(
+        reminder_scheduler(backend.reminders, lambda r: _fire_reminder(backend, r))
+    )
 
     try:
         async for message in websocket:
@@ -423,6 +559,12 @@ async def handler(websocket):
     except websockets.exceptions.ConnectionClosed:
         logger.info("Client disconnected")
     finally:
+        if backend._scheduler_task:
+            backend._scheduler_task.cancel()
+            try:
+                await backend._scheduler_task
+            except asyncio.CancelledError:
+                pass
         backend.stt.cleanup()
 
 

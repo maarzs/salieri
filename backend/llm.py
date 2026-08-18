@@ -19,6 +19,49 @@ from typing import AsyncIterator
 logger = logging.getLogger("salieri.llm")
 
 
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "set_reminder",
+            "description": "Create a reminder for the user.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string"},
+                    "fire_at": {"type": "string", "description": "Natural or ISO time"},
+                    "recurring": {
+                        "type": ["string", "null"],
+                        "enum": ["daily", "weekdays", "weekly", None],
+                    },
+                },
+                "required": ["message", "fire_at"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_reminders",
+            "description": "List pending reminders.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "cancel_reminder",
+            "description": "Cancel reminders by id or message text.",
+            "parameters": {
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"],
+            },
+        },
+    },
+]
+
+
 class LLMUnavailableError(RuntimeError):
     """
     Raised when the LLM engine has no usable client.
