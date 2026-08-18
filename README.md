@@ -1,12 +1,13 @@
 # Salieri AI
 
 [![CI](https://github.com/maarzs/salieri/actions/workflows/ci.yml/badge.svg)](https://github.com/maarzs/salieri/actions/workflows/ci.yml)
-[![GitHub release](https://img.shields.io/github/v/release/maarzs/salieri?label=release&style=flat-square)](https://github.com/maarzs/salieri/releases/latest)
+[![Release](https://img.shields.io/github/v/release/maarzs/salieri?label=release&style=flat-square)](https://github.com/maarzs/salieri/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/maarzs/salieri/total?style=flat-square)](https://github.com/maarzs/salieri/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](#license)
 
 <div align="center">
 
-**Desktop AI Companion — Inspired by the Amadeus System from Steins;Gate 0**
+**A desktop AI companion — inspired by the Amadeus system from *Steins;Gate 0***
 
 *"Memory data is possible." — Makise Kurisu*
 
@@ -14,30 +15,35 @@
 
 ---
 
-## What is Salieri AI?
+## Overview
 
-Salieri AI is a **desktop AI companion** that lives on your screen — always available, always listening. The name is a double Steins;Gate reference: it nods to Antonio Salieri, the composer famously portrayed as Mozart's rival, and to **Salieri, another AI in the Steins;Gate 0 universe** — a tribute to the Amadeus AI system from the visual novel *Steins;Gate 0*.
+Salieri AI is a desktop AI companion that lives on your screen — always available, always present. Unlike browser-based chatbots, Salieri runs as an always-on-top desktop window with a character avatar, voice conversation, persistent memory, and a distinct personality.
 
-Unlike browser-based chatbots, Salieri is **always on your desktop**: an always-on-top window with a character avatar, voice conversation, persistent memory, and a distinct personality. It's your AI companion — not a tool, but a presence.
+The name is a double reference: Antonio Salieri, the composer portrayed as Mozart's rival, and Salieri, an AI system in the *Steins;Gate 0* universe — a tribute to the Amadeus AI from the visual novel.
 
 ## Features
 
-### Core (MVP)
-- **💬 LLM-Powered Chat** — Natural conversation with personality and memory
-- **🎤 Voice Input** — Speak to Salieri using local speech recognition (faster-whisper)
-- **🔊 Voice Output** — Salieri speaks back with natural TTS (Edge TTS, free)
-- **🧠 Persistent Memory** — Remembers past conversations and facts about you
-- **🎭 Emotion System** — Detects and expresses emotions through text and avatar
-- **📞 Voice Calls** — Full-screen voice call mode for immersive conversation
-- **🖥️ Desktop Integration** — Always-on-top, transparent window, system tray
-- **⚙️ In-App Settings Panel** — Pick the LLM provider, TTS voice, and personality without editing files
+### Core
 
-### Chibi Mascot Mode (v0.2)
-- **🧍 Selectable Chibi Mascots** — Two characters: a gloomy scientist girl (default) and a silver-haired gentleman, pickable in Settings → Character
-- **📌 Clippy-Style Compact Mode** — The mascot floats transparently on your desktop with idle animations (gentle bob, breathing pulse, blinking); drag it anywhere
-- **💬 Speech Balloon** — Replies appear in a speech bubble with streaming text (or animated thinking dots), auto-hiding after 8s or on click
-- **⌨️ Hover-to-Type Input** — A slim input bar fades in near the bottom of the mascot for quick messages or mic toggle
-- **🪟 Expandable Chat Panel** — Click the mascot to expand into the full scrollable chat history + controls; click again to collapse back to the companion
+| Feature | Description |
+|---|---|
+| LLM-powered chat | Natural conversation with personality and long-term memory |
+| Voice input | Local speech recognition via faster-whisper |
+| Voice output | Natural TTS via Edge TTS (free), with a SAPI fallback |
+| Persistent memory | Remembers past conversations and facts about you (SQLite + semantic search) |
+| Emotion system | Detects and expresses emotions through text and avatar |
+| Voice calls | Full-screen voice call mode for immersive conversation |
+| Reminders | Ask Salieri to remind you about things — parsed from natural language, stored in SQLite, fired as desktop toasts |
+| Settings panel | Pick the LLM provider and model (with a live model browser), TTS voice, personality, and character without editing files |
+| Desktop integration | Always-on-top transparent window, system tray, `Alt+Shift+S` visibility toggle |
+
+### Chibi Mascot Mode
+
+- **Selectable characters** — two chibi mascots with distinct personas: a gloomy scientist girl (default) and a silver-haired gentleman, switchable in Settings → Character.
+- **Compact desktop mode** — the mascot floats transparently on your desktop with idle animations (gentle bob, breathing pulse, blinking) and passes clicks through to windows behind it except where the mascot itself is. Drag it anywhere.
+- **Speech balloon** — replies appear in a speech bubble with streaming text (or animated thinking dots), auto-hiding after 8 s or on click.
+- **Hover-to-type input** — a slim input bar fades in near the bottom of the mascot for quick messages or mic toggle.
+- **Expandable chat panel** — click the mascot to expand into the full scrollable chat history and controls; click again to collapse.
 
 ### Architecture
 
@@ -67,35 +73,35 @@ Unlike browser-based chatbots, Salieri is **always on your desktop**: an always-
 
 ## Tech Stack
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| **Desktop Shell** | Electron + TypeScript | Cross-platform, always-on-top, system tray, battle-tested |
-| **UI** | React + Vite + CSS | Fast, component-based, easy to style |
-| **AI Backend** | Python (asyncio) | Direct ML library access (whisper, TTS, embeddings) |
-| **LLM** | Ollama (local) / OpenAI (cloud) | FREE local inference, cloud fallback |
-| **Speech-to-Text** | faster-whisper | Local, free, accurate, real-time |
-| **Text-to-Speech** | Edge TTS (Microsoft) | Free, natural voices, 30+ languages |
-| **Memory** | SQLite + sentence-transformers | Persistent, semantic search, zero config |
-| **Communication** | WebSocket (ws) | Real-time bidirectional, low latency |
+| Layer | Technology | Rationale |
+|-------|-----------|-----------|
+| Desktop shell | Electron + TypeScript | Cross-platform, always-on-top, system tray |
+| UI | React + Vite + CSS | Component-based, fast to iterate |
+| AI backend | Python (asyncio) | Direct ML library access (whisper, TTS, embeddings) |
+| LLM | Ollama (local) / OpenAI-compatible (cloud) | Free local inference, cloud fallback |
+| Speech-to-text | faster-whisper | Local, free, accurate |
+| Text-to-speech | Edge TTS (Microsoft) | Free, natural voices, 30+ languages |
+| Memory | SQLite + sentence-transformers | Persistent, semantic search, zero config |
+| Transport | WebSocket | Real-time bidirectional, low latency |
 
 ## Download (Windows)
 
-Pre-built releases are on the [GitHub Releases page](https://github.com/maarzs/salieri/releases) — grab the latest `.zip`. The release is a **plain extract-and-run zip**, not an installer: **extract it anywhere, open the folder, and double-click `Salieri AI.exe`.** No setup wizard, no per-launch self-extraction — so startup is fast and you can run it from any folder (or a USB drive).
-
-The release is **modular, not one big static bundle**: inside the extracted folder, the Electron shell sits next to a **backend sidecar** at `resources/backend/` — an embedded CPython runtime plus the backend source and its core dependencies, as loose files (never baked into the exe or the asar).
-
-That means:
-
-- **The backend is independently updatable** — replace the `resources/backend/` folder (or any `.py` file in it) without touching the app.
-- **Heavy AI modules install on demand** — local speech-to-text (faster-whisper) and semantic memory (sentence-transformers/torch, ~2 GB) are *not* in the zip. Enable them from **Settings → Modules**; the app pip-installs them and restarts the backend. Chat + cloud LLM + Edge TTS work out of the box without them.
-- **Your data is separate from the app** — settings, memory, and installed modules live in `%APPDATA%\Salieri`, so you can delete/replace the app folder without losing anything.
+Pre-built releases are on the [GitHub Releases page](https://github.com/maarzs/salieri/releases).
 
 | Asset | What it is |
 |-------|------------|
 | `Salieri.AI-<version>-x64.zip` | Extract-and-run folder — unzip anywhere, launch `Salieri AI.exe`. No installer. |
 
+The release is a **plain extract-and-run zip**, not an installer: extract it anywhere and double-click `Salieri AI.exe`. No setup wizard, no per-launch self-extraction — startup is fast and you can run it from any folder (or a USB drive).
+
+The release is modular: inside the extracted folder, the Electron shell sits next to a backend sidecar at `resources/backend/` — an embedded CPython runtime plus the backend source and its core dependencies, as loose files (never baked into the exe or the asar). That means:
+
+- **The backend is independently updatable** — replace the `resources/backend/` folder (or any `.py` file in it) without touching the app.
+- **Heavy AI modules install on demand** — local speech-to-text (faster-whisper) and semantic memory (sentence-transformers/torch, ~2 GB) are *not* in the zip. Enable them from **Settings → Modules**; the app pip-installs them into the app folder and restarts the backend. Chat + cloud LLM + Edge TTS work out of the box without them.
+- **Your data is separate from the app** — settings and the memory database live in `%APPDATA%\Salieri`, so you can delete or replace the app folder without losing anything.
+
 > [!NOTE]
-> Local LLM inference still needs **Ollama** ([install](https://ollama.com), then `ollama pull llama3.2:3b`). Alternatively, plug any OpenAI-compatible API key into the in-app Settings panel and skip local models entirely.
+> Local LLM inference needs **Ollama** ([install](https://ollama.com), then `ollama pull llama3.2:3b`). Alternatively, plug any OpenAI-compatible API endpoint and key into the in-app Settings panel and skip local models entirely — the settings panel includes a model browser that lists models available at the endpoint.
 
 ## Getting Started (from source)
 
@@ -103,7 +109,7 @@ That means:
 
 - **Node.js** 18+ and **npm**
 - **Python** 3.10+
-- **Ollama** ([install](https://ollama.com)) with a model pulled:
+- **Ollama** ([install](https://ollama.com)) with a model pulled (if using local inference):
   ```bash
   ollama pull llama3.2:3b
   ```
@@ -128,36 +134,33 @@ ollama pull llama3.2:3b
 npm run dev
 ```
 
-### Running
+### Usage
 
 The app appears as a small floating mascot on your desktop (compact mode). Use `Alt+Shift+S` to toggle visibility.
 
-- **Drag the mascot** to move it anywhere on screen
-- **Hover near its bottom** to reveal the quick input bar — type or tap 🎤 for voice
-- **Click the mascot** to expand the full chat panel (history, voice call 📞, settings ⚙️); click again to collapse
-- **Replies** pop up in a speech balloon that auto-hides after 8 seconds
+- **Drag the mascot** to move it anywhere on screen.
+- **Hover near its bottom** to reveal the quick input bar — type or tap the mic for voice.
+- **Click the mascot** to expand the full chat panel (history, voice call, settings); click again to collapse.
+- **Replies** pop up in a speech balloon that auto-hides after 8 seconds.
+- **Reminders** — ask in chat (e.g. "remind me to stretch in 20 minutes"); Salieri confirms and fires a toast when the time comes.
 
 ## Configuration
 
-### In-App Settings Panel
+### In-app settings
 
-Open the ⚙️ gear button in the title bar. The panel covers:
+Open the gear button in the title bar (or from the expanded chat panel). The panel covers:
 
-- **LLM** — provider (Ollama local / OpenAI-compatible cloud), model, host/API key
-- **Voice output** — enable/disable TTS, pick an Edge TTS voice, adjust speaking rate
-- **Personality** — companion name, free-text style notes, response length
-  (concise / normal / detailed)
-- **Character** — pick the chibi mascot: gloomy scientist girl (default) or
-  silver-haired gentleman; applies instantly and persists across launches
+- **LLM** — provider (Ollama local / OpenAI-compatible cloud), model — with a live model browser pulled from the endpoint — and host/API key.
+- **Voice output** — enable/disable TTS, pick an Edge TTS voice, adjust speaking rate.
+- **Personality** — companion name, free-text style notes, response length (concise / normal / detailed).
+- **Character** — pick the chibi mascot: gloomy scientist girl (default) or silver-haired gentleman; each carries its own persona. Applies instantly and persists across launches.
+- **Modules** — install the optional heavy modules (faster-whisper, sentence-transformers) on demand.
 
-Settings are persisted to `settings.json` next to the memory database, so they
-survive updates. API keys are never sent back to the UI — the panel only sees
-whether a key is set (plus a last-4-char hint).
+Settings persist to `settings.json` next to the memory database and survive updates. API keys are never sent back to the UI — the panel only sees whether a key is set, plus a last-4-character hint.
 
-### Environment Variables
+### Environment variables
 
-Everything the Settings panel controls can also be set via environment
-variables (or `backend/.env`). The in-app setting always wins when present.
+Everything the Settings panel controls can also be set via environment variables (or `backend/.env`). The in-app setting always wins when present.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -175,11 +178,9 @@ variables (or `backend/.env`). The in-app setting always wins when present.
 | `SALIERI_MASCOT_CHARACTER` | `female` | `female` or `male` chibi mascot |
 | `SALIERI_STT_MODEL` | `small` | Whisper model size |
 
-### Character Customization
+### Character customization
 
-The default character lives in `backend/personality.py`. Most customization
-is available through the Settings panel; edit the file only to change the core
-personality text, greeting, or emotion keywords.
+The default character lives in `backend/personality.py`. Most customization is available through the Settings panel; edit the file only to change the core personality text, greeting, or emotion keywords.
 
 ## Project Structure
 
@@ -202,7 +203,8 @@ salieri-app/
 │   ├── settings.py     # Settings store (JSON + env precedence)
 │   ├── tts.py          # Edge TTS + SAPI fallback
 │   ├── stt.py          # faster-whisper speech recognition
-│   └── tests/          # pytest suite (memory, personality, settings, server)
+│   ├── tools/          # Feature modules (reminders store & scheduler)
+│   └── tests/          # pytest suite
 ├── .github/workflows/  # CI: frontend builds + backend pytest
 ├── assets/             # App icons, sprites
 └── package.json
@@ -212,10 +214,7 @@ salieri-app/
 
 ### Tests
 
-The backend has a pytest suite (71 tests) covering memory extraction/search,
-personality prompt building, the settings store, and the WebSocket server
-handlers (chat pipeline with stubbed STT/LLM/TTS — no network or model
-downloads needed):
+The backend has a pytest suite (82 tests) covering memory extraction/search, personality prompt building, the settings store, reminders, and the WebSocket server handlers (chat pipeline with stubbed STT/LLM/TTS — no network or model downloads needed):
 
 ```bash
 cd backend
@@ -227,26 +226,20 @@ pytest
 
 GitHub Actions runs on every push and PR:
 
-- **Frontend** — `npm run build:main` and `npm run build:renderer`
-  (TypeScript type-check + Vite bundle, Node 22)
+- **Frontend** — `npm run build:main` and `npm run build:renderer` (TypeScript type-check + Vite bundle, Node 22)
 - **Backend** — `pytest -v` (Python 3.11)
 
 See `.github/workflows/ci.yml`.
 
 ## Inspiration
 
-Salieri AI draws from the **Amadeus system** in *Steins;Gate 0* — an AI that digitizes human memory and personality to create a fully interactive digital consciousness. While we can't (yet) upload human memories, we can create AI companions that remember, learn, and grow with you.
+Salieri AI draws from the **Amadeus system** in *Steins;Gate 0* — an AI that digitizes human memory and personality to create an interactive digital consciousness. We can't (yet) upload human memories, but we can create AI companions that remember, learn, and grow with you.
 
-The name is a deliberate in-universe callback: in *Steins;Gate 0*, **Salieri** is another AI system that exists alongside Amadeus — a reminder that Amadeus is not the only consciousness in the story. Naming this project Salieri honors that parallel: an AI companion that isn't a rival to Amadeus, but a distinct presence standing beside it.
-
-> "Amadeus" means "beloved by God" in Latin.  
-> "Salieri" was the composer who stood in Amadeus Mozart's shadow —  
-> but history remembers both. This AI carries that spirit:  
-> not a rival, but a companion in its own right.
+The name is a deliberate in-universe callback: in *Steins;Gate 0*, Salieri is another AI system that exists alongside Amadeus. Naming this project Salieri honors that parallel — not a rival to Amadeus, but a distinct presence standing beside it.
 
 ## License
 
-MIT — feel free to use, modify, and share.
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
