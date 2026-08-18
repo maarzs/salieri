@@ -258,10 +258,10 @@ export default function App() {
       setCapture(!!t?.closest?.(INTERACTIVE));
     };
     // While click-through is ON, Electron forwards motion as `mousemove` only
-    // (no mouseover) — use it to detect entering an interactive element.
+    // (no mouseover), and e.target can be unreliable — hit-test by coordinates.
     const onMove = (e: MouseEvent) => {
       if (capturing) return;
-      const t = e.target as HTMLElement | null;
+      const t = document.elementFromPoint(e.clientX, e.clientY);
       if (t?.closest?.(INTERACTIVE)) setCapture(true);
     };
     // Pointer left the window entirely -> back to pass-through
